@@ -4,3 +4,8 @@ def print_hello_world():
 print_hello_world()
 
 print("Test")
+
+def aaaaaaaaaa():
+    print("ok")
+
+aaaaaaaaaa()
