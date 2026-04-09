@@ -9,3 +9,8 @@ def aaaaaaaaaa():
     print("ok")
 
 aaaaaaaaaa()
+
+def ab():
+    print("pervers kommentar")
+
+ab
