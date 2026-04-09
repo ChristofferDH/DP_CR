@@ -1,16 +1,15 @@
-def print_hello_world():
-    print("Hello World")
+import numpy as np
 
-print_hello_world()
+print(np.sqrt(9))
 
-print("Test")
 
-def aaaaaaaaaa():
-    print("ok")
 
-aaaaaaaaaa()
 
-def ab():
-    print("pervers kommentar")
 
-ab
+
+
+
+
+
+
+
