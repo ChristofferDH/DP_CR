@@ -22,8 +22,8 @@ class Durable_BufferStock():
         par.R = 1.03
         par.tau = 0.1
         par.delta = 0.15
-        par.sigma_perm = 0.1 
-        par.sigma_trans = 0.1
+        par.sigma_psi = 0.1 # Permanent
+        par.sigma_zeta = 0.1 # Transitory
         par.Lambda = 1 #Persistency parameter
 
         # Grids!!!
@@ -60,8 +60,8 @@ class Durable_BufferStock():
         
         # Numerical integration
         ## Shock grid settings
-        par.N_perm = 8
-        par.N_trans = 8
+        par.N_psi = 8
+        par.N_zeta = 8
 
     def create_grids(self):
         par = self.par
@@ -75,3 +75,18 @@ class Durable_BufferStock():
         par.grid_p = Tools.gridFunction(par.p_min,par.p_max, par.p_N)
 
         # Quadrature: nodes and weights
+
+        par.psi, par.psi_weight = Tools.GaussHermite_lognorm(par.sigma_psi,par.N_psi)
+        par.zeta,par.zeta_weight = Tools.GaussHermite_lognorm(par.sigma_zeta,par.N_zeta)
+
+        par.psi_vec = np.tile(par.psi,par.zeta.size) 
+        par.zeta_vec = np.repeat(par.zeta,par.psi.size)  
+        par.psi_weight_vec = np.tile(par.psi_weight,par.zeta.size)
+        par.zeta_weight_vec = np.repeat(par.zeta_weight,par.psi.size)
+        
+        par.shock_weight = par.psi_weight_vec * par.zeta_weight_vec
+        assert (1-sum(par.shock_weight) < 1e-8), 'the weights does not sum to 1'
+        par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
+
+
+
