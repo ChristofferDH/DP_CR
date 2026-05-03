@@ -83,9 +83,9 @@ class Durable_BufferStock():
         par.zeta_vec = np.repeat(par.zeta,par.psi.size)  
         par.psi_weight_vec = np.tile(par.psi_weight,par.zeta.size)
         par.zeta_weight_vec = np.repeat(par.zeta_weight,par.psi.size)
-        
+
         par.shock_weight = par.psi_weight_vec * par.zeta_weight_vec
-        assert (1-sum(par.shock_weight) < 1e-8), 'the weights does not sum to 1'
+        assert (1-sum(par.shock_weight) < 1e-8), 'The weights do not sum to 1'
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
 
