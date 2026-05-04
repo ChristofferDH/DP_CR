@@ -11,8 +11,11 @@ def EGMUE(sol, t, par):
         v[j] = -np.inf
 
     for i in range(par.a_N):
-        w[i] =
-        c[i] =
+        w[i] = func.w(EV,par)
+
+        q = func.q(EV,par)  
+        c[i] = func.z(sol.d,q,par)
+
         m[i] = a[i] + c[i] 
     
 

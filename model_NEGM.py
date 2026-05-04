@@ -90,8 +90,3 @@ class Durable_BufferStock():
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
     def solve(self):
-        
-        
-
-
-
