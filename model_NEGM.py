@@ -1,6 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
 import Tools
+import NEGM
 
 class Durable_BufferStock():
     
@@ -60,8 +61,8 @@ class Durable_BufferStock():
         
         # Numerical integration
         ## Shock grid settings
-        par.N_psi = 8
-        par.N_zeta = 8
+        par.N_psi = 5
+        par.N_zeta = 5
 
     def create_grids(self):
         par = self.par
@@ -87,6 +88,10 @@ class Durable_BufferStock():
         par.shock_weight = par.psi_weight_vec * par.zeta_weight_vec
         assert (1-sum(par.shock_weight) < 1e-8), 'The weights do not sum to 1'
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
+
+    def solve(self):
+        
+        
 
 
 
