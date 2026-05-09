@@ -1,7 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
 import Tools
-import NEGM
+#import NEGM
 
 class Durable_BufferStock():
     
@@ -90,3 +90,4 @@ class Durable_BufferStock():
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
     def solve(self):
+        pass

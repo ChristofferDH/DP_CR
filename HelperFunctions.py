@@ -2,11 +2,14 @@ import numpy as np
 
 # Funktioner skal nok ændres ud fra, hvordan EV udregnes
 
-def w(EV, par):
-    return par.beta * EV
+def utility(c, d, par):
+    return (c**par.alpha*(d+par.d_floor)**(1-par.alpha))**(1-par.rho) / (1 - par.rho)
 
-def q(EV, par):
-    return par.beta*par.R*EV
+def wFunction(expected_value, par):
+    return par.beta * expected_value
+
+def qFunction(expected_uc, par):
+    return par.beta*par.R*expected_uc
 
 def z(d, q, par):
 
