@@ -23,6 +23,11 @@ def EGMUpperEnvelope(sol, t, par, w, q, i_p, i_d):
             c[j] = grid_m[j]
             value_function[j] = func.utility(c[j],i_d,par) + w[0]
 
+    for i in range(grid_a - 1):
+        for j in range(grid_m):
+            if m[j] 
+
+
     return c, value_function
 
 def PostDecisionsFunctions(t, par):
@@ -60,5 +65,11 @@ def PostDecisionsFunctions(t, par):
                         q[noget +1] = weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
     return w, q
 
-def vectorInterpolation(par):
-    pass
+def vectorInterpolation(par, p, n, m):
+    grid_p = par.grid_p
+    grid_n = par.grid_n
+    grid_m = par.grid_m
+    grid_a = par.grid_a   
+
+    jp = grid_p.index(p)
+    jn = grid_p.index(n)
