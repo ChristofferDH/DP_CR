@@ -7,8 +7,8 @@ class Durable_BufferStock():
     
     def __init__(self, name = None):
         self.par = SimpleNamespace()
-        self.solution = SimpleNamespace()
-        self.simulation = SimpleNamespace()
+        self.sol = SimpleNamespace()
+        self.sim = SimpleNamespace()
 
         
     def modelSetup(self):
@@ -90,4 +90,32 @@ class Durable_BufferStock():
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
     def solve(self):
-        pass
+
+        # initialize
+        sol = self.sol
+        par = self.par
+
+        shape = (par.T,par.p_N,par.n_N,par.m_N)
+        sol.v = np.nan + np.zeros(shape)
+        sol.uc = np.nan + np.zeros(shape)
+        sol.c = np.nan + np.zeros(shape)
+        sol.d = np.nan + np.zeros(shape)
+        sol.m = np.nan + np.zeros(shape)
+
+        # last period (maximize current period)
+        sol.v[par.T-1,:,:,:]
+        sol.uc[par.T-1,:,:,:]
+        sol.c[par.T-1,:,:,:]
+        sol.d[par.T-1,:,:,:]
+        sol.m[par.T-1,:,:,:] 
+        
+        # step 1: compute post-decision functions (algorithm 5)
+
+        
+
+        # step 2: solve the keeper problem (algorithm 1)
+
+
+
+        # step 3: solve the adjuster problem. Interpolation of v_keep
+
