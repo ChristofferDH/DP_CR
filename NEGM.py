@@ -130,6 +130,7 @@ def vectorInterpolation(par, p, n, m, v):
                         omega_m = grid_m[jm_vector[i] + 1] - m[i]
                     else:
                         omega_m = m[i] - grid_m[jm_vector[i]]
-                    value_function[i] = (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn +kn, jm_vector[i] + km]
+                    value_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn +kn, jm_vector[i] + km]
+    return value_function
 
     
