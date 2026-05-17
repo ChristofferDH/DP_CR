@@ -1,8 +1,12 @@
 import numpy as np
 import HelperFunctions as func
 
+def NEGM(t, par, sol):
+    sol = EGMUpperEnvelope()
+    return sol
 
-def EGMUpperEnvelope(sol, t, par, w, q, p, d):
+
+def EGMUpperEnvelope(t, par, sol, p, d):
     # inputs
 
     grid_m = par.grid_m

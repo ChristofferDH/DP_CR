@@ -1,7 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
 import Tools
-#import NEGM
+import NEGM
 
 class Durable_BufferStock():
     
@@ -69,11 +69,18 @@ class Durable_BufferStock():
 
         # State grids
 
-        par.grid_a = Tools.gridFunction(par.a_min,par.a_max, par.a_N)
-        par.grid_x = Tools.gridFunction(par.x_min,par.x_max, par.x_N)
-        par.grid_n = Tools.gridFunction(par.n_min,par.n_max, par.n_N)
-        par.grid_m = Tools.gridFunction(par.m_min,par.m_max, par.m_N)
-        par.grid_p = Tools.gridFunction(par.p_min,par.p_max, par.p_N)
+        par.grid_a = np.nan + np.zeros([par.T, par.a_N])
+        par.grid_x = np.nan + np.zeros([par.T, par.x_N])
+        par.grid_n = np.nan + np.zeros([par.T, par.n_N])
+        par.grid_m = np.nan + np.zeros([par.T, par.m_N])
+        par.grid_p = np.nan + np.zeros([par.T, par.p_N])
+        
+        for t in range(par.T):
+            par.grid_a[t,:] = Tools.gridFunction(par.a_min,par.a_max, par.a_N)
+            par.grid_x[t,:] = Tools.gridFunction(par.x_min,par.x_max, par.x_N)
+            par.grid_n[t,:] = Tools.gridFunction(par.n_min,par.n_max, par.n_N)
+            par.grid_m[t,:] = Tools.gridFunction(par.m_min,par.m_max, par.m_N)
+            par.grid_p[t,:] = Tools.gridFunction(par.p_min,par.p_max, par.p_N)
 
         # Quadrature: nodes and weights
 
@@ -108,6 +115,10 @@ class Durable_BufferStock():
         sol.c[par.T-1,:,:,:]
         sol.d[par.T-1,:,:,:]
         sol.m[par.T-1,:,:,:] 
+
+        for t in range(par.T - 2, -1, -1):
+            NEGM.NEGM(t, par, sol)
+
         
         # step 1: compute post-decision functions (algorithm 5)
 
