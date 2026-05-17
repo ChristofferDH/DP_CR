@@ -93,7 +93,7 @@ def PostDecisionsFunctions(sol, t, par):
                         q[noget +1] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
     return w, q
 
-def vectorInterpolation(par, p, n, m):
+def vectorInterpolation(par, p, n, m, v):
     grid_p = par.grid_p
     grid_n = par.grid_n
     grid_m = par.grid_m
@@ -112,10 +112,6 @@ def vectorInterpolation(par, p, n, m):
     value_function = np.zeros(len(m))
     binary_array = [0, 1]
 
-    omega_p = 0
-    omega_n = 0
-    omega_m = 0
-
     for kp in binary_array:
         if kp == 0:
             omega_p = grid_p[jp + 1] - p
@@ -131,6 +127,9 @@ def vectorInterpolation(par, p, n, m):
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn])  (grid_p[jn + 1] - grid_p[jn])
                 for km in binary_array:
                     if km == 0:
-                        omega_m = grid_m[jm_vector[i] + 1] - m
+                        omega_m = grid_m[jm_vector[i] + 1] - m[i]
+                    else:
+                        omega_m = m[i] - grid_m[jm_vector[i]]
+                    value_function[i] = (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn +kn, jm_vector[i] + km]
 
     
