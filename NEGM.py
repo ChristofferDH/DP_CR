@@ -1,8 +1,40 @@
 import numpy as np
 import HelperFunctions as func
 
+
+def terminalPeriod(par, sol):
+
+    alpha = par.alpha
+    rho = par.rho
+    d_floor = par.d_floor
+    tau = par.tau
+
+    for i_n, n in enumerate(par.grid_n[par.T-1, :]):
+        for i_m, m in enumerate(par.grid_m[par.T-1,:]):
+            u_keep = func.utility(m,n,par) 
+            v_keep = u_keep
+
+            x = m + (1 - tau) * n
+            c_adjust = alpha * (x + d_floor)
+            d_adjust = c_adjust  + (1- alpha)/alpha * c_adjust - d_floor
+            u_adjust =(c_adjust ** alpha *(d_floor + d_adjust) ** (1 - rho))/(1 - rho)
+            v_adjust = u_adjust
+
+            if v_keep >= v_adjust:
+                sol.v[par.T-1,:, i_n, i_m] = v_keep
+                sol.c[par.T-1,:, i_n, i_m] = m
+                sol.d[par.T-1,:, i_n, i_m] = n
+            else:
+                sol.v[par.T-1,:, i_n, i_m] = v_adjust
+                sol.c[par.T-1,:, i_n, i_m] = c_adjust
+                sol.d[par.T-1,:, i_n, i_m] = d_adjust
+    sol.m[par.T-1,:, :, :] = 0    
+
+    return sol
+
 def NEGM(t, par, sol):
-    sol = EGMUpperEnvelope()
+
+    sol = EGMUpperEnvelope(t, par, sol, p, d)
     return sol
 
 
@@ -18,7 +50,7 @@ def EGMUpperEnvelope(t, par, sol, p, d):
 
     # optimal consumption 
 
-    for i_a,a in enumerate(grid_a):
+    for i_a, a in enumerate(grid_a):
         w[i_a] = w[p,d,i_a]
 
         q[i_a] = q[p,d,i_a]
@@ -29,7 +61,7 @@ def EGMUpperEnvelope(t, par, sol, p, d):
     # borrowing constraint
 
     for j in range(grid_m):
-        if grid_m[j] <= grid_m[1]
+        if grid_m[j] <= grid_m[1]:
             c[j] = grid_m[j]
             v[j] = func.utility(c[j],d,par) + w[1]
 

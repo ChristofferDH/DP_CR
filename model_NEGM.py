@@ -109,7 +109,7 @@ class Durable_BufferStock():
         sol.d = np.nan + np.zeros(shape)
         sol.m = np.nan + np.zeros(shape)
 
-        # last period (maximize current period)
+        # Terminal period
         sol.v[par.T-1,:,:,:]
         sol.uc[par.T-1,:,:,:]
         sol.c[par.T-1,:,:,:]
