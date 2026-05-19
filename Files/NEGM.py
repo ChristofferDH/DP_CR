@@ -99,12 +99,12 @@ def PostDecisionsFunctions(sol, t, par):
     grid_m = par.grid_m[t,:]
     grid_a = par.grid_a[t,:]
 
-    grid_psi = par.grid_psi
-    grid_zeta = par.grid_zeta
-    weight_psi = par.psi_weight
-    weight_zeta = par.zeta_weight
+    grid_psi = par.psi_vec
+    grid_zeta = par.zeta_vec
+    weight_psi = par.psi_weight_vec
+    weight_zeta = par.zeta_weight_vec
 
-    v_next = sol.v[t+1,:,:,:]
+    v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
     m_next = np.zeros(len(grid_a))
     # initialize post decision functions
@@ -116,22 +116,22 @@ def PostDecisionsFunctions(sol, t, par):
 
     # Crazy MF loop
     
-    for jp in range(grid_p):
-        for jn in range (grid_n):
-            for jpsi in range(grid_psi):
-                for jzeta in range(grid_zeta):
-                    p_next = grid_psi[jpsi+1] * grid_p[jp] ** par.Lambda
+    for jp in range(len(grid_p)):
+        for jn in range (len(grid_n)):
+            for jpsi in range(len(grid_psi)):
+                for jzeta in range(len(grid_zeta)):
+                    p_next = grid_psi[jpsi] * grid_p[jp] ** par.Lambda
                     n_next = (1 - par.delta) * grid_n[jn]
                     y_next = p_next * grid_zeta[jzeta]
-                    for ja in range(grid_a):
+                    for ja in range(len(grid_a)):
                         m_next[ja] = par.R * grid_a[ja] + y_next
                     
-                    v_next = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
-                    uc_next= vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
+                    v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
+                    uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
-                    for ja in range(grid_a):
-                        w[t, jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next 
-                        q[t, jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
+                    for ja in range(len(grid_a)):
+                        w[t, jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
+                        q[t, jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
     return w, q
 
 def vectorInterpolationKeep(par, p, n, m, v, t):
@@ -141,13 +141,16 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
 
     jp = np.searchsorted(grid_p, p, side='left') - 1
     jn = np.searchsorted(grid_n, n, side='left') - 1
-    jm_vector = np.zeros(len(m))
-    for i in range(m):
+    jm_vector = np.zeros(len(m), dtype = int)
+
+    jp = min(jp, len(grid_p) - 2)
+    jn = min(jn, len(grid_n) - 2)
+    for i in range(len(m)):
         if i == 0:
             jm_vector[i] = np.searchsorted(grid_m, m[i], side='left') - 1
         else:
             jm_vector[i] = jm_vector[i-1]
-            while m[i] >= grid_m[jm_vector[i] + 1]:
+            while jm_vector[i] + 1 < len(grid_m) and m[i] >= grid_m[jm_vector[i] + 1]:
                 jm_vector[i] += 1
         
     interp_function = np.zeros(len(m))
@@ -164,12 +167,15 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
             else:
                 n - grid_p[jn]
 
-            for i in range(interp_function):
+            for i in range(len(interp_function)):
+                jp = min(jp, len(grid_p) - 2)
+                jn = min(jn, len(grid_n) - 2)
+                jm_vector[i] = min(jm_vector[i], len(grid_m) - 2)
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
                 for km in binary_array:
                     if km == 0:
                         omega_m = grid_m[jm_vector[i] + 1] - m[i]
                     else:
                         omega_m = m[i] - grid_m[jm_vector[i]]
-                    interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[:, jp + kp, jn +kn, jm_vector[i] + km]
+                    interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm_vector[i] + km]
     return interp_function  
