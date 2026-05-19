@@ -1,7 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
-import Tools as Tools
-import NEGM
+from Files import Tools as Tools
+from Files import NEGM
 
 class Durable_BufferStock():
     

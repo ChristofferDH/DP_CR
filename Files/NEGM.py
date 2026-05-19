@@ -1,5 +1,5 @@
 import numpy as np
-import HelperFunctions as Func
+from Files import HelperFunctions as Func
 
 
 def terminalPeriod(par, sol):
@@ -36,7 +36,7 @@ def terminalPeriod(par, sol):
 
     return sol
 
-def NEGM(t, par, sol):
+def NEGMalg(t, par, sol):
 
     sol = EGMUpperEnvelope(t, par, sol, p, d)
     return sol
