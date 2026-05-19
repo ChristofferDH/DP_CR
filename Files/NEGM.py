@@ -61,8 +61,8 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
 
     # optimal consumption 
 
-    w_fixpd = w[t, jp, jd, :]
-    q_fixpd = q[t, jp, jd, :]
+    w_fixpd = w[jp, jd, :]
+    q_fixpd = q[jp, jd, :]
 
     for i_a, a in enumerate(grid_a):
         wi[i_a] = w_fixpd[i_a]
@@ -109,7 +109,7 @@ def PostDecisionsFunctions(sol, t, par):
     m_next = np.zeros(len(grid_a))
     # initialize post decision functions
 
-    shape = (par.T, len(grid_p), len(grid_n), len(grid_a))
+    shape = (len(grid_p), len(grid_n), len(grid_a))
     
     w = np.zeros(shape)
     q = np.zeros(shape)
@@ -130,8 +130,8 @@ def PostDecisionsFunctions(sol, t, par):
                     uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                     for ja in range(len(grid_a)):
-                        w[t, jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
-                        q[t, jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
+                        w[jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
+                        q[jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
     return w, q
 
 def vectorInterpolationKeep(par, p, n, m, v, t):
