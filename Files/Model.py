@@ -35,9 +35,9 @@ class Durable_BufferStock():
             par.p_max = 3
             par.p_N = 150 
         
-        ## Post-decision state grids
+            ## Post-decision state grids
 
-        ### d: grid settings
+            ### d: grid settings
         
             ### a: grid settings
             par.a_min = 0.0001

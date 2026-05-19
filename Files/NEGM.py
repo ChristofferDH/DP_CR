@@ -96,13 +96,7 @@ def PostDecisionsFunctions(sol, t, par):
     # inputs
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
-    grid_m = par.grid_m[t,:]
     grid_a = par.grid_a[t,:]
-
-    grid_psi = par.psi
-    grid_zeta = par.zeta
-    weight_psi = par.psi_weight
-    weight_zeta = par.zeta_weight
 
     v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
@@ -118,20 +112,22 @@ def PostDecisionsFunctions(sol, t, par):
     
     for jp in range(len(grid_p)):
         for jn in range (len(grid_n)):
-            for jpsi in range(len(grid_psi)):
-                for jzeta in range(len(grid_zeta)):
-                    p_next = grid_psi[jpsi] * grid_p[jp] ** par.Lambda
-                    n_next = (1 - par.delta) * grid_n[jn]
-                    y_next = p_next * grid_zeta[jzeta]
-                    for ja in range(len(grid_a)):
-                        m_next[ja] = par.R * grid_a[ja] + y_next
-                    
-                    v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
-                    uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
+            for jshock in range(par.number_of_shocks):
+                psi  = par.psi_vec[jshock]
+                zeta = par.zeta_vec[jshock]
+                weight = par.shock_weight[jshock]
 
-                    for ja in range(len(grid_a)):
-                        w[jp, jn, ja] += par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
-                        q[jp, jn, ja] += par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
+                p_next = psi * grid_p[jp] ** par.Lambda
+                n_next = (1 - par.delta) * grid_n[jn]
+                y_next = p_next * zeta
+                m_next = par.R * grid_a + y_next
+                    
+                v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
+                uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
+
+                w[jp, jn, :] += par.beta * weight * v_next_interp
+                q[jp, jn, :] += par.beta * par.R * weight * uc_next_interp
+                
     return w, q
 
 def vectorInterpolationKeep(par, p, n, m, v, t):
@@ -165,7 +161,7 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
             if kn == 0:
                 omega_n = grid_n[jn + 1] - n
             else:
-                omega_n = n - grid_p[jn]
+                omega_n = n - grid_n[jn]
 
             for i in range(len(interp_function)):
                 jp = min(jp, len(grid_p) - 2)
