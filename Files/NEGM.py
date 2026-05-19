@@ -1,33 +1,37 @@
 import numpy as np
-import HelperFunctions as func
+import HelperFunctions as Func
 
 
 def terminalPeriod(par, sol):
 
     alpha = par.alpha
-    rho = par.rho
     d_floor = par.d_floor
     tau = par.tau
 
     for i_n, n in enumerate(par.grid_n[par.T-1, :]):
         for i_m, m in enumerate(par.grid_m[par.T-1,:]):
-            u_keep = func.utility(m,n,par) 
+            u_keep = Func.utility(m,n,par) 
             v_keep = u_keep
+            uc_keep = Func.marginalUtility(m, n, par)
 
             x = m + (1 - tau) * n
             c_adjust = alpha * (x + d_floor)
             d_adjust = c_adjust  + (1- alpha)/alpha * c_adjust - d_floor
-            u_adjust =(c_adjust ** alpha *(d_floor + d_adjust) ** (1 - rho))/(1 - rho)
+            u_adjust = Func.utility(c_adjust, d_adjust, par)
             v_adjust = u_adjust
+            uc_adjust = Func.marginalUtility(c_adjust, d_adjust, par)
+            
 
             if v_keep >= v_adjust:
                 sol.v[par.T-1,:, i_n, i_m] = v_keep
                 sol.c[par.T-1,:, i_n, i_m] = m
                 sol.d[par.T-1,:, i_n, i_m] = n
+                sol.uc[par.T-1,:, i_n, i_m] = uc_keep
             else:
                 sol.v[par.T-1,:, i_n, i_m] = v_adjust
                 sol.c[par.T-1,:, i_n, i_m] = c_adjust
                 sol.d[par.T-1,:, i_n, i_m] = d_adjust
+                sol.uc[par.T-1,:, i_n, i_m] = uc_adjust
     sol.m[par.T-1,:, :, :] = 0    
 
     return sol
@@ -90,12 +94,12 @@ def PostDecisionsFunctions(sol, t, par):
     weight_psi = par.psi_weight
     weight_zeta = par.zeta_weight
 
-    v_next = sol.v[t+1]
-    uc_next = sol.uc[t+1]
+    v_next = sol.v[t+1,:,:,:]
+    uc_next = sol.uc[t+1,:,:,:]
     m_next = np.zeros(len(grid_a))
     # initialize post decision functions
 
-    shape = (len(grid_p), len(grid_n), len(grid_a))
+    shape = (par.T, len(grid_p), len(grid_n), len(grid_a))
     
     w = np.zeros(shape)
     q = np.zeros(shape)
@@ -112,24 +116,15 @@ def PostDecisionsFunctions(sol, t, par):
                     for ja in range(grid_a):
                         m_next[ja] = par.R * grid_a[ja] + y_next
                     
-                    v_next_adjust = magic_adjust.function(grid_p, grid_n, grid_m, v_next, p_next, n_next, m_next)
-                    uc_next_adjust = magic_adjust.function(grid_p, grid_n, grid_m, uc_next, p_next, n_next, m_next)
-                    v_next_keep = magic_adjust.function(grid_p, grid_n, grid_m, v_next, p_next, n_next, m_next)
-                    uc_next_keep = magic_keep.function(grid_p, grid_n, grid_m, uc_next, p_next, n_next, m_next)
-
-                    if v_next_keep >= v_next_adjust:
-                        v_next = v_next_keep
-                        uc_next = uc_next_keep
-                    else:
-                        v_next = v_next_adjust
-                        uc_next = uc_next_adjust
+                    v_next = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next)
+                    uc_next= vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next)
 
                     for ja in range(grid_a):
-                        w[noget +1] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next 
-                        q[noget +1] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
+                        w[t, jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next 
+                        q[t, jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
     return w, q
 
-def vectorInterpolation(par, p, n, m, v):
+def vectorInterpolationKeep(par, p, n, m, v):
     grid_p = par.grid_p
     grid_n = par.grid_n
     grid_m = par.grid_m
@@ -160,13 +155,11 @@ def vectorInterpolation(par, p, n, m, v):
                 n - grid_p[jn]
 
             for i in range(value_function):
-                Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn])  (grid_p[jn + 1] - grid_p[jn])
+                Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
                 for km in binary_array:
                     if km == 0:
                         omega_m = grid_m[jm_vector[i] + 1] - m[i]
                     else:
                         omega_m = m[i] - grid_m[jm_vector[i]]
-                    value_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn +kn, jm_vector[i] + km]
-    return value_function
-
-    
+                    value_function[i] += (omega_p * omega_n * omega_m)/Omega * v[:, jp + kp, jn +kn, jm_vector[i] + km]
+    return value_function  

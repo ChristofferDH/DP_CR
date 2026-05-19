@@ -5,6 +5,9 @@ import numpy as np
 def utility(c, d, par):
     return (c**par.alpha*(d+par.d_floor)**(1-par.alpha))**(1-par.rho) / (1 - par.rho)
 
+def marginalUtility(c, d, par):
+    return par.alpha * c ** (par.alpha * (1 - par.rho) - 1) *(d + par.d_floor) ** ((1 - par.alpha) * (1 - par.rho))
+
 def wFunction(expected_value, par):
     return par.beta * expected_value
 
