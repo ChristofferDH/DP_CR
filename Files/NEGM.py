@@ -99,10 +99,10 @@ def PostDecisionsFunctions(sol, t, par):
     grid_m = par.grid_m[t,:]
     grid_a = par.grid_a[t,:]
 
-    grid_psi = par.psi_vec
-    grid_zeta = par.zeta_vec
-    weight_psi = par.psi_weight_vec
-    weight_zeta = par.zeta_weight_vec
+    grid_psi = par.psi
+    grid_zeta = par.zeta
+    weight_psi = par.psi_weight
+    weight_zeta = par.zeta_weight
 
     v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
@@ -130,8 +130,8 @@ def PostDecisionsFunctions(sol, t, par):
                     uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                     for ja in range(len(grid_a)):
-                        w[jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
-                        q[jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
+                        w[jp, jn, ja] += par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next_interp[ja]
+                        q[jp, jn, ja] += par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next_interp[ja]
     return w, q
 
 def vectorInterpolationKeep(par, p, n, m, v, t):
@@ -143,8 +143,8 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
     jn = np.searchsorted(grid_n, n, side='left') - 1
     jm_vector = np.zeros(len(m), dtype = int)
 
-    jp = min(jp, len(grid_p) - 2)
-    jn = min(jn, len(grid_n) - 2)
+    jp = np.clip(jp, 0, len(grid_p) - 2)
+    jn = np.clip(jn, 0, len(grid_n) - 2)
     for i in range(len(m)):
         if i == 0:
             jm_vector[i] = np.searchsorted(grid_m, m[i], side='left') - 1
@@ -160,12 +160,12 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
         if kp == 0:
             omega_p = grid_p[jp + 1] - p
         else:
-            p - grid_p[jp]
+            omega_p = p - grid_p[jp]
         for kn in binary_array:
             if kn == 0:
                 omega_n = grid_n[jn + 1] - n
             else:
-                n - grid_p[jn]
+                omega_n = n - grid_p[jn]
 
             for i in range(len(interp_function)):
                 jp = min(jp, len(grid_p) - 2)
