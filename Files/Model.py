@@ -1,7 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
-import Tools
-import NEGM
+import Tools as Tools
+import NEGM as NEGM
 
 class Durable_BufferStock():
     
@@ -69,11 +69,11 @@ class Durable_BufferStock():
 
         # State grids
 
-        par.grid_a = np.nan + np.zeros([par.T, par.a_N])
-        par.grid_x = np.nan + np.zeros([par.T, par.x_N])
-        par.grid_n = np.nan + np.zeros([par.T, par.n_N])
-        par.grid_m = np.nan + np.zeros([par.T, par.m_N])
-        par.grid_p = np.nan + np.zeros([par.T, par.p_N])
+        par.grid_a = np.nan + np.zeros((par.T, par.a_N))
+        par.grid_x = np.nan + np.zeros((par.T, par.x_N))
+        par.grid_n = np.nan + np.zeros((par.T, par.n_N))
+        par.grid_m = np.nan + np.zeros((par.T, par.m_N))
+        par.grid_p = np.nan + np.zeros((par.T, par.p_N))
         
         for t in range(par.T):
             par.grid_a[t,:] = Tools.gridFunction(par.a_min,par.a_max, par.a_N)
