@@ -1,7 +1,7 @@
 import numpy as np
 from types import SimpleNamespace
 import Tools as Tools
-import NEGM as NEGM
+import NEGM
 
 class Durable_BufferStock():
     
@@ -15,7 +15,7 @@ class Durable_BufferStock():
         par = self.par
 
         # All of these parameters are taken from Druedahl (2020)
-        par.T = 50
+        par.T = 10
         par.beta = 0.965
         par.rho = 2
         par.alpha = 0.9
@@ -30,34 +30,60 @@ class Durable_BufferStock():
         # Grids!!!
         # pre and post-decisision state grid
         ### p: grid settings
-        par.p_min = 0.0001
-        par.p_max = 3
-        par.p_N = 150 
+        if 0:
+            par.p_min = 0.0001
+            par.p_max = 3
+            par.p_N = 150 
         
         ## Post-decision state grids
 
         ### d: grid settings
+        
+            ### a: grid settings
+            par.a_min = 0.0001
+            par.a_max = 11
+            par.a_N = 300 
 
+            ## Pre-decision state grids
+            ### x: grid settings
+            par.x_min = 0.0001
+            par.x_max = 13
+            par.x_N = 150 
+
+            ### n: grid settings
+            par.n_min = 0.0001
+            par.n_max = 3
+            par.n_N = 150 
+
+            ### m: grid settings
+            par.m_min = 0.0001
+            par.m_max = 10
+            par.m_N = 300 
+
+        par.p_min = 0.0001
+        par.p_max = 3
+        par.p_N = 20
+        
         ### a: grid settings
-        par.a_min = 0
+        par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 300 
+        par.a_N = 30 
 
-        ## Pre-decision state grids
-        ### x: grid settings
-        par.x_min = 0
+            ## Pre-decision state grids
+            ### x: grid settings
+        par.x_min = 0.0001
         par.x_max = 13
-        par.x_N = 150 
+        par.x_N = 30 
 
-        ### n: grid settings
-        par.n_min = 0
+            ### n: grid settings
+        par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 150 
+        par.n_N = 10 
 
-        ### m: grid settings
-        par.m_min = 0
+            ### m: grid settings
+        par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 300 
+        par.m_N = 30
         
         # Numerical integration
         ## Shock grid settings
@@ -116,13 +142,13 @@ class Durable_BufferStock():
         sol.d[par.T-1,:,:,:]
         sol.m[par.T-1,:,:,:] 
 
-        for t in range(par.T - 2, -1, -1):
-            NEGM.NEGM(t, par, sol)
+        #for t in range(par.T - 2, -1, -1):
+            #NEGM.NEGM(t, par, sol)
 
         
         # step 1: compute post-decision functions (algorithm 5)
 
-        
+       # w, q = NEGM.PostDecisionsFunctions(sol, t, par)
 
         # step 2: solve the keeper problem (algorithm 1)
 

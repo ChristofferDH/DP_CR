@@ -10,7 +10,7 @@ def terminalPeriod(par, sol):
 
     for i_n, n in enumerate(par.grid_n[par.T-1, :]):
         for i_m, m in enumerate(par.grid_m[par.T-1,:]):
-            u_keep = Func.utility(m,n,par) 
+            u_keep = Func.utility(m,n,par)
             v_keep = u_keep
             uc_keep = Func.marginalUtility(m, n, par)
 
@@ -42,52 +42,62 @@ def NEGM(t, par, sol):
     return sol
 
 
-def EGMUpperEnvelope(t, par, sol, p, d):
+def EGMUpperEnvelope(t, par, w, q, jp, jd):
     # inputs
 
-    grid_m = par.grid_m
-    grid_a = par.grid_a
-
-    # initialize v
+    grid_m = par.grid_m[t,:]
+    grid_a = par.grid_a[t,:]
+    d = par.grid_n[jd]
+    # initialize
     
     v = np.full(len(grid_m), -np.inf)
 
+    c = np.full(len(grid_m), np.nan)
+
+    wi = np.full(len(grid_a), np.nan)
+    qi = np.full(len(grid_a), np.nan)
+    ci = np.full(len(grid_a), np.nan)
+    mi = np.full(len(grid_a), np.nan)
+
     # optimal consumption 
 
+    w_fixpd = w[t, jp, jd, :]
+    q_fixpd = q[t, jp, jd, :]
+
     for i_a, a in enumerate(grid_a):
-        w[i_a] = w[p,d,i_a]
+        wi[i_a] = w_fixpd[i_a]
+        qi[i_a] = q_fixpd[i_a]
 
-        q[i_a] = q[p,d,i_a]
-        c[i_a] = func.z(d, q[i_a], par)
+        ci[i_a] = Func.z(d, qi[i_a], par)
 
-        m[i_a] = a + c[i_a] 
+        mi[i_a] = a + ci[i_a] 
     
     # borrowing constraint
 
-    for j in range(grid_m):
-        if grid_m[j] <= grid_m[1]:
-            c[j] = grid_m[j]
-            v[j] = func.utility(c[j],d,par) + w[1]
+    for j, m in enumerate(grid_m):
+        if m <= mi[0]:
+            c[j] = m
+            v[j] = Func.utility(c[j],d,par) + wi[0]
 
     # Interpolate the optimal consumption on to the exogenous grid
 
-    for i in range(grid_a - 1):
-        for j in range(grid_m):
-            if m[i] <= grid_m[j] <= m[i+1]:
-                c[i,j] = c[i] + (c[i+1]-c[i])/(m[i+1]-m[i])*(m[j]-m[i])
-                v[i,j] = func.utility(c[i,j],d) + w[i] + (w[i+1]-w[i])/(a[i+1]-a[i])*((m[j]-c[i,j])-a[i])
-                if v[i,j] > v[j]:
-                    v[j] = v[i,j]
-                    c[j] = c[i,j]
+    for i in range(len(grid_a) - 1):
+        for j, m in enumerate(grid_m):
+            if mi[i] <= m <= mi[i+1]:
+                c_ij = ci[i] + (ci[i+1]-ci[i])/(mi[i+1]-mi[i])*(m-mi[i])
+                v_ij = Func.utility(c_ij, d, par) + wi[i] + (wi[i+1]-wi[i])/(grid_a[i+1]-grid_a[i])*((m-c_ij)-grid_a[i])
+                if v_ij > v[j]:
+                    v[j] = v_ij
+                    c[j] = c_ij
                     
     return c, v
 
 def PostDecisionsFunctions(sol, t, par):
     # inputs
-    grid_p = par.grid_p
-    grid_n = par.grid_n
-    grid_m = par.grid_m
-    grid_a = par.grid_a
+    grid_p = par.grid_p[t,:]
+    grid_n = par.grid_n[t,:]
+    grid_m = par.grid_m[t,:]
+    grid_a = par.grid_a[t,:]
 
     grid_psi = par.grid_psi
     grid_zeta = par.grid_zeta
@@ -116,18 +126,18 @@ def PostDecisionsFunctions(sol, t, par):
                     for ja in range(grid_a):
                         m_next[ja] = par.R * grid_a[ja] + y_next
                     
-                    v_next = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next)
-                    uc_next= vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next)
+                    v_next = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
+                    uc_next= vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                     for ja in range(grid_a):
                         w[t, jp, jn, ja] = par.beta * weight_psi[jpsi] * weight_zeta[jzeta] * v_next 
                         q[t, jp, jn, ja] = par.beta * par.R * weight_psi[jpsi] * weight_zeta[jzeta] * uc_next
     return w, q
 
-def vectorInterpolationKeep(par, p, n, m, v):
-    grid_p = par.grid_p
-    grid_n = par.grid_n
-    grid_m = par.grid_m
+def vectorInterpolationKeep(par, p, n, m, v, t):
+    grid_p = par.grid_p[t,:]
+    grid_n = par.grid_n[t,:]
+    grid_m = par.grid_m[t,:]
 
     jp = np.searchsorted(grid_p, p, side='left') - 1
     jn = np.searchsorted(grid_n, n, side='left') - 1
@@ -140,7 +150,7 @@ def vectorInterpolationKeep(par, p, n, m, v):
             while m[i] >= grid_m[jm_vector[i] + 1]:
                 jm_vector[i] += 1
         
-    value_function = np.zeros(len(m))
+    interp_function = np.zeros(len(m))
     binary_array = [0, 1]
 
     for kp in binary_array:
@@ -154,12 +164,12 @@ def vectorInterpolationKeep(par, p, n, m, v):
             else:
                 n - grid_p[jn]
 
-            for i in range(value_function):
+            for i in range(interp_function):
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
                 for km in binary_array:
                     if km == 0:
                         omega_m = grid_m[jm_vector[i] + 1] - m[i]
                     else:
                         omega_m = m[i] - grid_m[jm_vector[i]]
-                    value_function[i] += (omega_p * omega_n * omega_m)/Omega * v[:, jp + kp, jn +kn, jm_vector[i] + km]
-    return value_function  
+                    interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[:, jp + kp, jn +kn, jm_vector[i] + km]
+    return interp_function  
