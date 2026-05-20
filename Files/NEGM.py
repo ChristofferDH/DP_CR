@@ -16,7 +16,7 @@ def terminalPeriod(par, sol):
 
             x = m + (1 - tau) * n
             c_adjust = alpha * (x + d_floor)
-            d_adjust = c_adjust  + (1- alpha)/alpha * c_adjust - d_floor
+            d_adjust = (1- alpha)/alpha * c_adjust - d_floor
             u_adjust = Func.utility(c_adjust, d_adjust, par)
             v_adjust = u_adjust
             uc_adjust = Func.marginalUtility(c_adjust, d_adjust, par)
@@ -36,7 +36,7 @@ def terminalPeriod(par, sol):
 
     return sol
 
-def NEGMalg(t, par, sol):
+def NEGMalg(t, par, sol, p, d):
 
     sol = EGMUpperEnvelope(t, par, sol, p, d)
     return sol
