@@ -10,7 +10,6 @@ class Durable_BufferStock():
         self.sol = SimpleNamespace()
         self.sim = SimpleNamespace()
 
-        
     def modelSetup(self):
         par = self.par
 
@@ -30,36 +29,6 @@ class Durable_BufferStock():
         # Grids!!!
         # pre and post-decisision state grid
         ### p: grid settings
-        if 0:
-            par.p_min = 0.0001
-            par.p_max = 3
-            par.p_N = 150 
-        
-            ## Post-decision state grids
-
-            ### d: grid settings
-        
-            ### a: grid settings
-            par.a_min = 0.0001
-            par.a_max = 11
-            par.a_N = 300 
-
-            ## Pre-decision state grids
-            ### x: grid settings
-            par.x_min = 0.0001
-            par.x_max = 13
-            par.x_N = 150 
-
-            ### n: grid settings
-            par.n_min = 0.0001
-            par.n_max = 3
-            par.n_N = 150 
-
-            ### m: grid settings
-            par.m_min = 0.0001
-            par.m_max = 10
-            par.m_N = 300 
-
         par.p_min = 0.0001
         par.p_max = 3
         par.p_N = 20
@@ -69,18 +38,18 @@ class Durable_BufferStock():
         par.a_max = 11
         par.a_N = 30 
 
-            ## Pre-decision state grids
-            ### x: grid settings
+        ## Pre-decision state grids
+        ### x: grid settings
         par.x_min = 0.0001
         par.x_max = 13
         par.x_N = 30 
 
-            ### n: grid settings
+        ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
         par.n_N = 10 
 
-            ### m: grid settings
+        ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
         par.m_N = 30
@@ -94,7 +63,6 @@ class Durable_BufferStock():
         par = self.par
 
         # State grids
-
         par.grid_a = np.nan + np.zeros((par.T, par.a_N))
         par.grid_x = np.nan + np.zeros((par.T, par.x_N))
         par.grid_n = np.nan + np.zeros((par.T, par.n_N))
@@ -109,7 +77,6 @@ class Durable_BufferStock():
             par.grid_p[t,:] = Tools.gridFunction(par.p_min,par.p_max, par.p_N)
 
         # Quadrature: nodes and weights
-
         par.psi, par.psi_weight = Tools.GaussHermiteLognorm(par.sigma_psi,par.N_psi)
         par.zeta,par.zeta_weight = Tools.GaussHermiteLognorm(par.sigma_zeta,par.N_zeta)
 

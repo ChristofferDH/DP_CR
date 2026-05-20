@@ -3,6 +3,7 @@ from Files import HelperFunctions as Func
 
 def NEGMalg(t, par, sol, p, d):
 
+    sol = terminalPeriod(par, sol)
     sol = EGMUpperEnvelope(t, par, sol, p, d)
     return sol
 
@@ -105,7 +106,6 @@ def PostDecisionsFunctions(sol, t, par):
     q = np.zeros(shape)
 
     # Crazy MF loop
-    
     for jp in range(len(grid_p)):
         for jn in range (len(grid_n)):
             for jshock in range(par.number_of_shocks):
