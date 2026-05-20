@@ -16,7 +16,7 @@ def gridFunction(grid_min, grid_max, num_grids):
 
     return grid
 
-def gauss_hermite(n):
+def gaussHermite(n):
 
     # a. calculations
     i = np.arange(1,n)
@@ -32,9 +32,9 @@ def gauss_hermite(n):
 
     return x,w
 
-def GaussHermite_lognorm(sigma,n):
+def GaussHermiteLognorm(sigma,n):
 
-    x, w = gauss_hermite(n)
+    x, w = gaussHermite(n)
     x = np.exp(x*math.sqrt(2)*sigma - 0.5*sigma**2)
     w = w / math.sqrt(math.pi)
 

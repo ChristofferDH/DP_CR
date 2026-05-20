@@ -14,7 +14,7 @@ def wFunction(expected_value, par):
 def qFunction(expected_uc, par):
     return par.beta*par.R*expected_uc
 
-def z(d, q, par):
+def zFunction(d, q, par):
 
     numerator = q
     denominator = (par.alpha * (d + par.d_floor)) ** ((1-par.alpha)*(1-par.rho))

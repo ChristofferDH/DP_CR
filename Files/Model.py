@@ -90,7 +90,7 @@ class Durable_BufferStock():
         par.N_psi = 5
         par.N_zeta = 5
 
-    def create_grids(self):
+    def createGrids(self):
         par = self.par
 
         # State grids
@@ -110,8 +110,8 @@ class Durable_BufferStock():
 
         # Quadrature: nodes and weights
 
-        par.psi, par.psi_weight = Tools.GaussHermite_lognorm(par.sigma_psi,par.N_psi)
-        par.zeta,par.zeta_weight = Tools.GaussHermite_lognorm(par.sigma_zeta,par.N_zeta)
+        par.psi, par.psi_weight = Tools.GaussHermiteLognorm(par.sigma_psi,par.N_psi)
+        par.zeta,par.zeta_weight = Tools.GaussHermiteLognorm(par.sigma_zeta,par.N_zeta)
 
         par.psi_vec = np.tile(par.psi,par.zeta.size) 
         par.zeta_vec = np.repeat(par.zeta,par.psi.size)  

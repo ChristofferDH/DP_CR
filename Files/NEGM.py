@@ -1,6 +1,10 @@
 import numpy as np
 from Files import HelperFunctions as Func
 
+def NEGMalg(t, par, sol, p, d):
+
+    sol = EGMUpperEnvelope(t, par, sol, p, d)
+    return sol
 
 def terminalPeriod(par, sol):
 
@@ -36,12 +40,6 @@ def terminalPeriod(par, sol):
 
     return sol
 
-def NEGMalg(t, par, sol, p, d):
-
-    sol = EGMUpperEnvelope(t, par, sol, p, d)
-    return sol
-
-
 def EGMUpperEnvelope(t, par, w, q, jp, jd):
     # inputs
 
@@ -51,9 +49,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
     # initialize
     
     v = np.full(len(grid_m), -np.inf)
-
     c = np.full(len(grid_m), np.nan)
-
     wi = np.full(len(grid_a), np.nan)
     qi = np.full(len(grid_a), np.nan)
     ci = np.full(len(grid_a), np.nan)
@@ -68,7 +64,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
         wi[i_a] = w_fixpd[i_a]
         qi[i_a] = q_fixpd[i_a]
 
-        ci[i_a] = Func.z(d, qi[i_a], par)
+        ci[i_a] = Func.zFunction(d, qi[i_a], par)
 
         mi[i_a] = a + ci[i_a] 
     
