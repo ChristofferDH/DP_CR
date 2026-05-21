@@ -1,5 +1,5 @@
 import numpy as np
-from Files import HelperFunctions as Func
+from Files import HelperFunctions as Function
 
 def NEGMalg(t, par, sol, p, d):
 
@@ -15,16 +15,16 @@ def terminalPeriod(par, sol):
 
     for i_n, n in enumerate(par.grid_n[par.T-1, :]):
         for i_m, m in enumerate(par.grid_m[par.T-1,:]):
-            u_keep = Func.utility(m,n,par)
+            u_keep = Function.utility(m,n,par)
             v_keep = u_keep
-            uc_keep = Func.marginalUtility(m, n, par)
+            uc_keep = Function.marginalUtility(m, n, par)
 
             x = m + (1 - tau) * n
             c_adjust = alpha * (x + d_floor)
             d_adjust = (1- alpha)/alpha * c_adjust - d_floor
-            u_adjust = Func.utility(c_adjust, d_adjust, par)
+            u_adjust = Function.utility(c_adjust, d_adjust, par)
             v_adjust = u_adjust
-            uc_adjust = Func.marginalUtility(c_adjust, d_adjust, par)
+            uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             
 
             if v_keep >= v_adjust:
@@ -42,30 +42,28 @@ def terminalPeriod(par, sol):
     return sol
 
 def EGMUpperEnvelope(t, par, w, q, jp, jd):
+    
     # inputs
 
     grid_m = par.grid_m[t,:]
     grid_a = par.grid_a[t,:]
-    d = par.grid_n[jd]
+    d = par.grid_n[t, jd]
+
     # initialize
     
     v = np.full(len(grid_m), -np.inf)
     c = np.full(len(grid_m), np.nan)
-    wi = np.full(len(grid_a), np.nan)
-    qi = np.full(len(grid_a), np.nan)
     ci = np.full(len(grid_a), np.nan)
     mi = np.full(len(grid_a), np.nan)
 
     # optimal consumption 
 
-    w_fixpd = w[jp, jd, :]
-    q_fixpd = q[jp, jd, :]
+    wi = w[jp, jd, :]
+    qi = q[jp, jd, :]
 
     for i_a, a in enumerate(grid_a):
-        wi[i_a] = w_fixpd[i_a]
-        qi[i_a] = q_fixpd[i_a]
 
-        ci[i_a] = Func.zFunction(d, qi[i_a], par)
+        ci[i_a] = Function.z(d, qi[i_a], par)
 
         mi[i_a] = a + ci[i_a] 
     
@@ -74,7 +72,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
     for j, m in enumerate(grid_m):
         if m <= mi[0]:
             c[j] = m
-            v[j] = Func.utility(c[j],d,par) + wi[0]
+            v[j] = Function.utility(c[j],d,par) + wi[0]
 
     # Interpolate the optimal consumption on to the exogenous grid
 
@@ -82,7 +80,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
         for j, m in enumerate(grid_m):
             if mi[i] <= m <= mi[i+1]:
                 c_ij = ci[i] + (ci[i+1]-ci[i])/(mi[i+1]-mi[i])*(m-mi[i])
-                v_ij = Func.utility(c_ij, d, par) + wi[i] + (wi[i+1]-wi[i])/(grid_a[i+1]-grid_a[i])*((m-c_ij)-grid_a[i])
+                v_ij = Function.utility(c_ij, d, par) + wi[i] + (wi[i+1]-wi[i])/(grid_a[i+1]-grid_a[i])*((m-c_ij)-grid_a[i])
                 if v_ij > v[j]:
                     v[j] = v_ij
                     c[j] = c_ij
@@ -97,7 +95,7 @@ def PostDecisionsFunctions(sol, t, par):
 
     v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
-    m_next = np.zeros(len(grid_a))
+    
     # initialize post decision functions
 
     shape = (len(grid_p), len(grid_n), len(grid_a))

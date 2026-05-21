@@ -8,13 +8,13 @@ def utility(c, d, par):
 def marginalUtility(c, d, par):
     return par.alpha * c ** (par.alpha * (1 - par.rho) - 1) *(d + par.d_floor) ** ((1 - par.alpha) * (1 - par.rho))
 
-def wFunction(expected_value, par):
+def w(expected_value, par):
     return par.beta * expected_value
 
-def qFunction(expected_uc, par):
+def q(expected_uc, par):
     return par.beta*par.R*expected_uc
 
-def zFunction(d, q, par):
+def z(d, q, par):
 
     numerator = q
     denominator = (par.alpha * (d + par.d_floor)) ** ((1-par.alpha)*(1-par.rho))
