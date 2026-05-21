@@ -1,11 +1,33 @@
 import numpy as np
 from Files import HelperFunctions as Function
 
-def NEGMalg(t, par, sol, p, d):
+def NEGMalg(t, par, sol):
+
+    # Terminal period
 
     sol = terminalPeriod(par, sol)
-    sol = EGMUpperEnvelope(t, par, sol, p, d)
-    return sol
+
+    #for t in range(par.T - 2, -1, -1):
+        # Step 1
+
+    w, q = PostDecisionsFunctions(sol, t, par)
+
+        # Step 2
+
+    c_keep = np.full((par.p_N, par.n_N, par.m_N), np.nan)
+    v_keep = np.full((par.p_N, par.n_N, par.m_N), np.nan)
+
+    for jp in range(par.p_N):
+        for jd in range(par.n_N):
+            c_keep[jp, jd, :], v_keep[jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+
+        # Step 3
+        
+
+
+        # Bellman
+        
+    return sol   
 
 def terminalPeriod(par, sol):
 

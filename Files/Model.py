@@ -92,6 +92,7 @@ class Durable_BufferStock():
     def solve(self):
 
         # initialize
+
         sol = self.sol
         par = self.par
 
@@ -102,24 +103,6 @@ class Durable_BufferStock():
         sol.d = np.nan + np.zeros(shape)
         sol.m = np.nan + np.zeros(shape)
 
-        # Terminal period
-        sol.v[par.T-1,:,:,:]
-        sol.uc[par.T-1,:,:,:]
-        sol.c[par.T-1,:,:,:]
-        sol.d[par.T-1,:,:,:]
-        sol.m[par.T-1,:,:,:] 
+        # Run the MF algorithm
 
-        #for t in range(par.T - 2, -1, -1):
-            #NEGM.NEGM(t, par, sol)
-
-        
-        # step 1: compute post-decision functions (algorithm 5)
-
-       # w, q = NEGM.PostDecisionsFunctions(sol, t, par)
-
-        # step 2: solve the keeper problem (algorithm 1)
-
-
-
-        # step 3: solve the adjuster problem. Interpolation of v_keep
-
+        # Store results
