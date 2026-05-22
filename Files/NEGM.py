@@ -7,12 +7,46 @@ def NEGMalg(par, sol):
 
     sol = terminalPeriod(par, sol)
 
-    #Step 1 and 2: Solving the keep problem
+    grid_x = par.grid_x
+    grid_n = par.grid_n
+    grid_m = par.grid_m
 
-    #c_keep, v_keep = keepProblem(par, sol)
+    c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    c_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    v_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    for t in range(par.T - 2, -1, -1):
+        # Step 1: Finding w and q
+        w, q = postDecisionFunctions(sol, t, par)
 
+        # Step 2: Solving the keeper problem for c and v
+        for jp in range(par.p_N):
+            for jd, d in enumerate(grid_n[t,:]):
+                c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+        if 0:
+            for jp in range(par.p_N):
+                for x in grid_x[t, :]:
+                    for jd, d in enumerate(grid_n[t, :]):
+                        if x >= d:
+                            m = x - d
+                            c_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], c_keep[t,jp, jd, :])
+                            v_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], v_keep[t,jp, jd, :])
+                        else:
+                            c_adjust[t, jp, jd :] = -np.inf
+                            v_adjust[t, jp, jd :] = -np.inf
+            
+            for jp in range(par.p_N):
+                for jd in range(par.n_N):
+                    for jm in range(par.m_N):
+                        sol.d[t, jp, jd, jm] = grid_n[t, jd]
+                        if v_keep[t, jp, jd, jm] >= v_adjust[t, jp, jd, jm]:
+                            sol.v[t, jp, jd, jm] = v_keep[t, jp, jd, jm]
+                            sol.c[t, jp, jd, jm] = c_keep[t, jp, jd, jm]
+                            
+                        else:
+                            sol.v[t, jp, jd, jm] = v_adjust[t, jp, jd, jm]
+                            sol.c[t, jp, jd, jm] = c_adjust[t, jp, jd, jm]
 
-        
     return sol   
 
 def terminalPeriod(par, sol):
@@ -48,21 +82,7 @@ def terminalPeriod(par, sol):
     sol.a[par.T-1,:, :, :] = 0    
 
     return sol
-
-def keepProblem(par, sol):
-    c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-    v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-
-    for t in range(par.T - 2, -1, -1):
-        # Step 1: Finding w and q
-        w, q = postDecisionFunctions(sol, t, par)
-
-        # Step 2: Solving the keeper problem for c and v
-        for jp in range(par.p_N):
-            for jd in range(par.n_N):
-                c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
-    return c_keep, v_keep
-    
+  
 
 def EGMUpperEnvelope(t, par, w, q, jp, jd):
     
@@ -118,7 +138,7 @@ def postDecisionFunctions(sol, t, par):
 
     v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
-    
+    print(np.argwhere(np.isnan(v_next)), t)
     # initialize post decision functions
 
     shape = (len(grid_p), len(grid_n), len(grid_a))
@@ -191,4 +211,5 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
                     else:
                         omega_m = m[i] - grid_m[jm_vector[i]]
                     interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm_vector[i] + km]
+                    
     return interp_function  

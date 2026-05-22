@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from Files import Tools as Tools
 from Files import NEGM
 
-class Durable_BufferStock():
+class DurableBufferStock():
     
     def __init__(self, name = None):
         self.par = SimpleNamespace()
