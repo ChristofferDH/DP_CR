@@ -102,6 +102,7 @@ class Durable_BufferStock():
         sol.c = np.nan + np.zeros(shape)
         sol.d = np.nan + np.zeros(shape)
         sol.m = np.nan + np.zeros(shape)
+        sol.a = np.nan + np.zeros(shape)
 
         # Run the MF algorithm
 

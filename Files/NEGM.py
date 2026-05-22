@@ -1,31 +1,17 @@
 import numpy as np
 from Files import HelperFunctions as Function
 
-def NEGMalg(t, par, sol):
+def NEGMalg(par, sol):
 
-    # Terminal period
+    #Step 0: Solving the terminal period
 
     sol = terminalPeriod(par, sol)
 
-    #for t in range(par.T - 2, -1, -1):
-        # Step 1
+    #Step 1 and 2: Solving the keep problem
 
-    w, q = PostDecisionsFunctions(sol, t, par)
-
-        # Step 2
-
-    c_keep = np.full((par.p_N, par.n_N, par.m_N), np.nan)
-    v_keep = np.full((par.p_N, par.n_N, par.m_N), np.nan)
-
-    for jp in range(par.p_N):
-        for jd in range(par.n_N):
-            c_keep[jp, jd, :], v_keep[jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
-
-        # Step 3
-        
+    #c_keep, v_keep = keepProblem(par, sol)
 
 
-        # Bellman
         
     return sol   
 
@@ -48,7 +34,7 @@ def terminalPeriod(par, sol):
             v_adjust = u_adjust
             uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             
-
+            sol.m[par.T-1,:, i_n, i_m] = m
             if v_keep >= v_adjust:
                 sol.v[par.T-1,:, i_n, i_m] = v_keep
                 sol.c[par.T-1,:, i_n, i_m] = m
@@ -59,9 +45,24 @@ def terminalPeriod(par, sol):
                 sol.c[par.T-1,:, i_n, i_m] = c_adjust
                 sol.d[par.T-1,:, i_n, i_m] = d_adjust
                 sol.uc[par.T-1,:, i_n, i_m] = uc_adjust
-    sol.m[par.T-1,:, :, :] = 0    
+    sol.a[par.T-1,:, :, :] = 0    
 
     return sol
+
+def keepProblem(par, sol):
+    c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+
+    for t in range(par.T - 2, -1, -1):
+        # Step 1: Finding w and q
+        w, q = postDecisionFunctions(sol, t, par)
+
+        # Step 2: Solving the keeper problem for c and v
+        for jp in range(par.p_N):
+            for jd in range(par.n_N):
+                c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+    return c_keep, v_keep
+    
 
 def EGMUpperEnvelope(t, par, w, q, jp, jd):
     
@@ -109,7 +110,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
                     
     return c, v
 
-def PostDecisionsFunctions(sol, t, par):
+def postDecisionFunctions(sol, t, par):
     # inputs
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
