@@ -26,32 +26,31 @@ def NEGMalg(par, sol):
         sol.c[t,:,:,:] = c_keep[t,:,:,:]
         sol.v[t,:,:,:] = v_keep[t,:,:,:]
         sol.d[t,:,:,:] = sol.d[t+1,:,:,:] / (1 - par.delta)
-        print("Hej med dig :-). Her er din tidsperiode: ", t)
         sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
         
-        if 0:
-            for jp in range(par.p_N):
-                for x in grid_x[t, :]:
-                    for jd, d in enumerate(grid_n[t, :]):
-                        if x >= d:
-                            m = x - d
-                            c_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], c_keep[t,jp, jd, :])
-                            v_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], v_keep[t,jp, jd, :])
-                        else:
-                            c_adjust[t, jp, jd :] = -np.inf
-                            v_adjust[t, jp, jd :] = -np.inf
+        # Step 3: solving the adjustment problem        
+        for jp in range(par.p_N):
+            for x in grid_x[t, :]:
+                for jd, d in enumerate(grid_n[t, :]):
+                    if x >= d:
+                        m = x - d
+                        c_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], c_keep[t,jp, jd, :])
+                        v_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], v_keep[t,jp, jd, :])
+                    else:
+                        c_adjust[t, jp, jd :] = -np.inf
+                        v_adjust[t, jp, jd :] = -np.inf
             
-            for jp in range(par.p_N):
-                for jd in range(par.n_N):
-                    for jm in range(par.m_N):
-                        sol.d[t, jp, jd, jm] = grid_n[t, jd]
-                        if v_keep[t, jp, jd, jm] >= v_adjust[t, jp, jd, jm]:
-                            sol.v[t, jp, jd, jm] = v_keep[t, jp, jd, jm]
-                            sol.c[t, jp, jd, jm] = c_keep[t, jp, jd, jm]
+        for jp in range(par.p_N):
+            for jd in range(par.n_N):
+                for jm in range(par.m_N):
+                    sol.d[t, jp, jd, jm] = grid_n[t, jd]
+                    if v_keep[t, jp, jd, jm] >= v_adjust[t, jp, jd, jm]:
+                        sol.v[t, jp, jd, jm] = v_keep[t, jp, jd, jm]
+                        sol.c[t, jp, jd, jm] = c_keep[t, jp, jd, jm]
                             
-                        else:
-                            sol.v[t, jp, jd, jm] = v_adjust[t, jp, jd, jm]
-                            sol.c[t, jp, jd, jm] = c_adjust[t, jp, jd, jm]
+                    else:
+                        sol.v[t, jp, jd, jm] = v_adjust[t, jp, jd, jm]
+                        sol.c[t, jp, jd, jm] = c_adjust[t, jp, jd, jm]
 
     return sol   
 
@@ -139,7 +138,6 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
     return c, v
 
 def postDecisionFunctions(sol, t, par):
-    print("Her er din tidsperiode i PostDecisionFunction: ", t)
     # inputs
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]

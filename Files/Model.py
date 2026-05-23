@@ -17,7 +17,7 @@ class DurableBufferStock():
         par.T = 10
         par.beta = 0.965
         par.rho = 2
-        par.alpha = 0.1
+        par.alpha = 0.9
         par.d_floor = 0.01
         par.R = 1.03
         par.tau = 0.1
