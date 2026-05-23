@@ -23,6 +23,12 @@ def NEGMalg(par, sol):
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+        sol.c[t,:,:,:] = c_keep[t,:,:,:]
+        sol.v[t,:,:,:] = v_keep[t,:,:,:]
+        sol.d[t,:,:,:] = sol.d[t+1,:,:,:] / (1 - par.delta)
+        print("Hej med dig :-). Her er din tidsperiode: ", t)
+        sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
+        
         if 0:
             for jp in range(par.p_N):
                 for x in grid_x[t, :]:
@@ -65,7 +71,10 @@ def terminalPeriod(par, sol):
             c_adjust = alpha * (x + d_floor)
             d_adjust = (1- alpha)/alpha * c_adjust - d_floor
             u_adjust = Function.utility(c_adjust, d_adjust, par)
-            v_adjust = u_adjust
+            if x >= alpha/(1 - alpha) * d_floor:
+                v_adjust = u_adjust
+            else:
+                v_adjust = -np.inf
             uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             
             sol.m[par.T-1,:, i_n, i_m] = m
@@ -108,8 +117,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
 
         ci[i_a] = Function.z(d, qi[i_a], par)
 
-        mi[i_a] = a + ci[i_a] 
-    
+        mi[i_a] = a + ci[i_a]
     # borrowing constraint
 
     for j, m in enumerate(grid_m):
@@ -120,17 +128,18 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd):
     # Interpolate the optimal consumption on to the exogenous grid
 
     for i in range(len(grid_a) - 1):
-        for j, m in enumerate(grid_m):
-            if mi[i] <= m <= mi[i+1]:
-                c_ij = ci[i] + (ci[i+1]-ci[i])/(mi[i+1]-mi[i])*(m-mi[i])
-                v_ij = Function.utility(c_ij, d, par) + wi[i] + (wi[i+1]-wi[i])/(grid_a[i+1]-grid_a[i])*((m-c_ij)-grid_a[i])
-                if v_ij > v[j]:
-                    v[j] = v_ij
-                    c[j] = c_ij
+            for j, m in enumerate(grid_m):
+                if mi[i] <= m <= mi[i+1]:
+                    c_ij = ci[i] + (ci[i+1]-ci[i])/(mi[i+1]-mi[i])*(m-mi[i])
+                    v_ij = Function.utility(c_ij, d, par) + wi[i] + (wi[i+1]-wi[i])/(grid_a[i+1]-grid_a[i])*((m-c_ij)-grid_a[i])
+                    if v_ij > v[j]:
+                        v[j] = v_ij
+                        c[j] = c_ij
                     
     return c, v
 
 def postDecisionFunctions(sol, t, par):
+    print("Her er din tidsperiode i PostDecisionFunction: ", t)
     # inputs
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
@@ -138,7 +147,7 @@ def postDecisionFunctions(sol, t, par):
 
     v_next = sol.v[t+1,:,:,:] 
     uc_next = sol.uc[t+1,:,:,:]
-    print(np.argwhere(np.isnan(v_next)), t)
+    
     # initialize post decision functions
 
     shape = (len(grid_p), len(grid_n), len(grid_a))
@@ -160,6 +169,7 @@ def postDecisionFunctions(sol, t, par):
                 m_next = par.R * grid_a + y_next
                     
                 v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
+                #print("Halløjsa", t)
                 uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                 w[jp, jn, :] += par.beta * weight * v_next_interp
@@ -203,7 +213,7 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
             for i in range(len(interp_function)):
                 jp = min(jp, len(grid_p) - 2)
                 jn = min(jn, len(grid_n) - 2)
-                jm_vector[i] = min(jm_vector[i], len(grid_m) - 2)
+                jm_vector[i] = np.clip(jm_vector[i], 0, len(grid_m)-2)
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
                 for km in binary_array:
                     if km == 0:

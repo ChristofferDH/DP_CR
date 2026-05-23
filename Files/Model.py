@@ -17,7 +17,7 @@ class DurableBufferStock():
         par.T = 10
         par.beta = 0.965
         par.rho = 2
-        par.alpha = 0.9
+        par.alpha = 0.1
         par.d_floor = 0.01
         par.R = 1.03
         par.tau = 0.1
@@ -39,11 +39,7 @@ class DurableBufferStock():
         par.a_N = 30 
 
         ## Pre-decision state grids
-        ### x: grid settings
-        par.x_min = 0.0001
-        par.x_max = 13
-        par.x_N = 30 
-
+        
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
@@ -53,6 +49,11 @@ class DurableBufferStock():
         par.m_min = 0.0001
         par.m_max = 10
         par.m_N = 30
+
+        ### x: grid settings
+        par.x_min = 0.0001
+        par.x_max = par.m_max + par.n_max
+        par.x_N = 30 
         
         # Numerical integration
         ## Shock grid settings
