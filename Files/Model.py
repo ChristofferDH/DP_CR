@@ -104,7 +104,10 @@ class DurableBufferStock():
         sol.d = np.nan + np.zeros(shape)
         sol.m = np.nan + np.zeros(shape)
         sol.a = np.nan + np.zeros(shape)
+        sol.n = np.nan + np.zeros(shape)
 
-        # Run the MF algorithm
+        # Run the MF algorithm and pray
+
+        sol = NEGM.NEGMalg(par, sol)
 
         # Store results

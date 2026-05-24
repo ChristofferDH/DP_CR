@@ -7,15 +7,22 @@ def NEGMalg(par, sol):
 
     sol = terminalPeriod(par, sol)
 
-    grid_x = par.grid_x
     grid_n = par.grid_n
     grid_m = par.grid_m
 
+    v_temp = np.full((par.T - 1, par.p_N, par.n_N, par.n_N, par.m_N), np.nan) #Temporary array for the adjustment problem
+
     c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    d_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    uc_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     c_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    m_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    d_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+    uc_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     for t in range(par.T - 2, -1, -1):
+        print(t)
         # Step 1: Finding w and q
         w, q = postDecisionFunctions(sol, t, par)
 
@@ -23,34 +30,42 @@ def NEGMalg(par, sol):
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
-        sol.c[t,:,:,:] = c_keep[t,:,:,:]
-        sol.v[t,:,:,:] = v_keep[t,:,:,:]
-        sol.d[t,:,:,:] = sol.d[t+1,:,:,:] / (1 - par.delta)
-        sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
+
+        d_keep[t,:,:,:] = sol.n[t+1,:,:,:] / (1 - par.delta)
+        uc_keep[t,:,:,:] = Function.marginalUtility(c_keep[t,:,:,:], d_keep[t,:,:,:], par)
+
         
-        # Step 3: solving the adjustment problem        
-        for jp in range(par.p_N):
-            for x in grid_x[t, :]:
-                for jd, d in enumerate(grid_n[t, :]):
-                    if x >= d:
-                        m = x - d
-                        c_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], c_keep[t,jp, jd, :])
-                        v_adjust[t, jp, jd :] = np.interp(m, grid_m[t,:], v_keep[t,jp, jd, :])
-                    else:
-                        c_adjust[t, jp, jd :] = -np.inf
-                        v_adjust[t, jp, jd :] = -np.inf
-            
+        # Step 3: solving the adjustment problem
+        for jm, m in enumerate(grid_m[t, :]):        
+            for jp in range(par.p_N):
+                for jn, n in enumerate(grid_n[t, :]):
+                    x = m + (1-par.tau)*n
+                    for jd, d in enumerate(grid_n[t, :]):
+                        if x >= d:
+                            m_new = x - d
+                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], v_keep[t,jp, jd, :])
+                        else:
+                            v_temp[t, jp, jn, jd, jm] = -np.inf
+                    d_opt = np.argmax(v_temp[t, jp, jn, :, jm])
+                    v_adjust[t, jp, jn, jm] = v_temp[t, jp, jn, d_opt, jm]
+
+        #Step 4: comparing the two solutions and choosing the better one             
         for jp in range(par.p_N):
             for jd in range(par.n_N):
                 for jm in range(par.m_N):
-                    sol.d[t, jp, jd, jm] = grid_n[t, jd]
                     if v_keep[t, jp, jd, jm] >= v_adjust[t, jp, jd, jm]:
                         sol.v[t, jp, jd, jm] = v_keep[t, jp, jd, jm]
                         sol.c[t, jp, jd, jm] = c_keep[t, jp, jd, jm]
+                        sol.d[t, jp, jd, jm] = d_keep[t, jp, jd, jm]
+                        sol.m[t, jp, jd, jm] = grid_m[t, jm]
+                        sol.uc[t, jp, jd, jm] = uc_keep[t, jp, jd, jm]
                             
                     else:
                         sol.v[t, jp, jd, jm] = v_adjust[t, jp, jd, jm]
                         sol.c[t, jp, jd, jm] = c_adjust[t, jp, jd, jm]
+                        sol.d[t, jp, jd, jm] = d_adjust[t, jp, jd, jm]
+                        sol.m[t, jp, jd, jm] = m_adjust[t, jp, jd, jm]
+                        sol.uc[t, jp, jd, jm] = uc_adjust[t, jp, jd, jm]
 
     return sol   
 
@@ -167,7 +182,6 @@ def postDecisionFunctions(sol, t, par):
                 m_next = par.R * grid_a + y_next
                     
                 v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
-                #print("Halløjsa", t)
                 uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                 w[jp, jn, :] += par.beta * weight * v_next_interp
