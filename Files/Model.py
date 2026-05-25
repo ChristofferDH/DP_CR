@@ -43,7 +43,7 @@ class DurableBufferStock():
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 50 
+        par.n_N = 20 
 
         ### m: grid settings
         par.m_min = 0.0001

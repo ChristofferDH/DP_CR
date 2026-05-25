@@ -86,9 +86,10 @@ def terminalPeriod(par, sol):
             u_adjust = Function.utility(c_adjust, d_adjust, par)
             if x >= alpha/(1 - alpha) * d_floor:
                 v_adjust = u_adjust
+                uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             else:
                 v_adjust = -np.inf
-            uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
+                uc_adjust = np.nan
             
             sol.m[par.T-1,:, i_n, i_m] = m
             if v_keep >= v_adjust:
@@ -222,8 +223,6 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
                 omega_n = n - grid_n[jn]
 
             for i in range(len(interp_function)):
-                jp = min(jp, len(grid_p) - 2)
-                jn = min(jn, len(grid_n) - 2)
                 jm_vector[i] = np.clip(jm_vector[i], 0, len(grid_m)-2)
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
                 for km in binary_array:
