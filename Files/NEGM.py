@@ -11,16 +11,16 @@ def NEGMalg(par, sol):
     grid_m = par.grid_m
 
     v_temp = np.full((par.T - 1, par.p_N, par.n_N, par.n_N, par.m_N), np.nan) #Temporary array for the adjustment problem
+    c_temp = np.full((par.T - 1, par.p_N, par.n_N, par.n_N, par.m_N), np.nan)
 
     c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-    d_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-    uc_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+
     c_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-    m_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     d_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
-    uc_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+
+    
     for t in range(par.T - 2, -1, -1):
         print(t)
         # Step 1: Finding w and q
@@ -30,42 +30,41 @@ def NEGMalg(par, sol):
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
-
-        d_keep[t,:,:,:] = sol.n[t+1,:,:,:] / (1 - par.delta)
-        uc_keep[t,:,:,:] = Function.marginalUtility(c_keep[t,:,:,:], d_keep[t,:,:,:], par)
-
         
         # Step 3: solving the adjustment problem
         for jm, m in enumerate(grid_m[t, :]):        
             for jp in range(par.p_N):
                 for jn, n in enumerate(grid_n[t, :]):
                     x = m + (1-par.tau)*n
-                    for jd, d in enumerate(grid_n[t, :]):
+                    for jd, d in enumerate(grid_n[t, :]): 
                         if x >= d:
                             m_new = x - d
-                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], v_keep[t,jp, jd, :])
+                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], v_keep[t, jp, jd, :])
+                            c_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], c_keep[t, jp, jd, :])
                         else:
-                            v_temp[t, jp, jn, jd, jm] = -np.inf
+                            v_temp[t, jp, jn, jd, jm] = -1e12
+                            c_temp[t, jp, jn, jd, jm] = -1e12
                     d_opt = np.argmax(v_temp[t, jp, jn, :, jm])
+                    d_adjust[t, jp, jn, jm] = grid_n[t, d_opt]
                     v_adjust[t, jp, jn, jm] = v_temp[t, jp, jn, d_opt, jm]
-
+                    c_adjust[t, jp, jn, jm] = c_temp[t, jp, jn, d_opt, jm]
+                  
         #Step 4: comparing the two solutions and choosing the better one             
         for jp in range(par.p_N):
-            for jd in range(par.n_N):
+            for jn in range(par.n_N):
+                sol.m[t, jp, jn, :] = grid_m[t, :]
                 for jm in range(par.m_N):
-                    if v_keep[t, jp, jd, jm] >= v_adjust[t, jp, jd, jm]:
-                        sol.v[t, jp, jd, jm] = v_keep[t, jp, jd, jm]
-                        sol.c[t, jp, jd, jm] = c_keep[t, jp, jd, jm]
-                        sol.d[t, jp, jd, jm] = d_keep[t, jp, jd, jm]
-                        sol.m[t, jp, jd, jm] = grid_m[t, jm]
-                        sol.uc[t, jp, jd, jm] = uc_keep[t, jp, jd, jm]
+                    if v_keep[t, jp, jn, jm] >= v_adjust[t, jp, jn, jm]:
+                        sol.v[t, jp, jn, jm] = v_keep[t, jp, jn, jm]
+                        sol.c[t, jp, jn, jm] = c_keep[t, jp, jn, jm]
+                        sol.d[t, jp, jn, jm] = grid_n[t, jn]
                             
                     else:
-                        sol.v[t, jp, jd, jm] = v_adjust[t, jp, jd, jm]
-                        sol.c[t, jp, jd, jm] = c_adjust[t, jp, jd, jm]
-                        sol.d[t, jp, jd, jm] = d_adjust[t, jp, jd, jm]
-                        sol.m[t, jp, jd, jm] = m_adjust[t, jp, jd, jm]
-                        sol.uc[t, jp, jd, jm] = uc_adjust[t, jp, jd, jm]
+                        sol.v[t, jp, jn, jm] = v_adjust[t, jp, jn, jm]
+                        sol.c[t, jp, jn, jm] = c_adjust[t, jp, jn, jm]
+                        sol.d[t, jp, jn, jm] = d_adjust[t, jp, jn, jm]
+
+        sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
 
     return sol   
 

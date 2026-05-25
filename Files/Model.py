@@ -36,19 +36,19 @@ class DurableBufferStock():
         ### a: grid settings
         par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 30 
+        par.a_N = 60 
 
         ## Pre-decision state grids
         
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 10 
+        par.n_N = 50 
 
         ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 30
+        par.m_N = 60
 
         ### x: grid settings
         par.x_min = 0.0001
@@ -97,7 +97,7 @@ class DurableBufferStock():
         sol = self.sol
         par = self.par
 
-        shape = (par.T,par.p_N,par.n_N,par.m_N)
+        shape = (par.T, par.p_N, par.n_N, par.m_N)
         sol.v = np.nan + np.zeros(shape)
         sol.uc = np.nan + np.zeros(shape)
         sol.c = np.nan + np.zeros(shape)
