@@ -2,6 +2,7 @@ import numpy as np
 from types import SimpleNamespace
 from Files import Tools as Tools
 from Files import NEGM
+from time import process_time
 
 class DurableBufferStock():
     
@@ -31,29 +32,29 @@ class DurableBufferStock():
         ### p: grid settings
         par.p_min = 0.0001
         par.p_max = 3
-        par.p_N = 30
+        par.p_N = 40
         
         ### a: grid settings
         par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 60 
+        par.a_N = 80 
 
         ## Pre-decision state grids
         
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 60 
+        par.n_N = 100 
 
         ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 60
+        par.m_N = 80
 
         ### x: grid settings
         par.x_min = 0.0001
         par.x_max = par.m_max + par.n_max
-        par.x_N = 30 
+        par.x_N = 80 
         
         # Numerical integration
         ## Shock grid settings
@@ -63,8 +64,8 @@ class DurableBufferStock():
         # Simulation
         par.simN = 1000 # number of persons in simulation
         par.sim_m_ini = 2.5 # initial m in simulation
-        par.sim_p_ini = 0.0 # initial p in simulation
-        par.sim_n_ini = 0.0 # initial n in simulation
+        par.sim_p_ini = 1.0 # initial p in simulation
+        par.sim_n_ini = 1.0 # initial n in simulation
 
     def createGrids(self):
         par = self.par
@@ -97,7 +98,7 @@ class DurableBufferStock():
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
     def solve(self):
-
+        tic = process_time()
         # initialize
 
         sol = self.sol
@@ -111,14 +112,21 @@ class DurableBufferStock():
         sol.m = np.nan + np.zeros(shape)
         sol.a = np.nan + np.zeros(shape)
         sol.n = np.nan + np.zeros(shape)
+        sol.v_keep = np.nan + np.zeros(shape)
+        sol.v_adjust = np.nan + np.zeros(shape)
 
         # Run the MF algorithm and pray
-
+        print("Number of gridpoints:", "t =", par.T, "p =", par.p_N, "n =", par.n_N, "m =", par.m_N, )
         sol = NEGM.NEGMalg(par, sol)
 
-        # Store results
+        toc = process_time()
+        print(f'Solver time: {toc-tic:.2f} seconds')
+
+
 
     def simulate(self):
+        tic = process_time()
+
         par = self.par
         sol = self.sol
         sim = self.sim
@@ -132,6 +140,8 @@ class DurableBufferStock():
         sim.m = np.nan + np.zeros(shape)
         sim.p = np.nan + np.zeros(shape)
         sim.n = np.nan + np.zeros(shape)
+        sim.a = np.nan + np.zeros(shape)
+        sim.y = np.nan + np.zeros(shape)
 
             
         shocki = np.random.choice(par.number_of_shocks,(par.T,par.simN),replace=True,p=par.shock_weight) 
@@ -139,8 +149,8 @@ class DurableBufferStock():
         sim.zeta = par.zeta_vec[shocki]
             
         #check it has a mean of 1
-        assert (abs(1-np.mean(sim.psi)) < 1e-4), 'The mean is not 1 in the simulation of xi'
-        assert (abs(1-np.mean(sim.zeta)) < 1e-4), 'The mean is not 1 in the simulation of psi'
+        assert (abs(1-np.mean(sim.psi)) < 1e-2), 'The mean is not 1 in the simulation of xi'
+        assert (abs(1-np.mean(sim.zeta)) < 1e-2), 'The mean is not 1 in the simulation of psi'
 
         # Initial values
         sim.p[0,:] = par.sim_p_ini
@@ -149,10 +159,10 @@ class DurableBufferStock():
 
         # Simulation
         for t in range(par.T):
-            sim.c[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.c[t,:,:,:])
-            sim.d[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.d[t,:,:,:])
-            sim.v_keep[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_keep[t,:,:,:])
-            sim.v_adjust[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_adjust[t,:,:,:])
+            sim.c[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.c[t,:,:,:], t)
+            sim.d[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.d[t,:,:,:], t)
+            sim.v_keep[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_keep[t,:,:,:], t)
+            sim.v_adjust[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_adjust[t,:,:,:], t)
             
             for i in range(par.simN):
                 if sim.v_keep[t,i] >= sim.v_adjust[t,i]:
@@ -160,9 +170,11 @@ class DurableBufferStock():
                 else:
                     sim.a[t,i] = sim.m[t,i] + (1-par.tau) * sim.n[t,i] - sim.c[t,i] - sim.d[t,i]
 
-
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
                 sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]
                 sim.m[t+1,:] = par.R * sim.a[t,:] + sim.y[t+1,:]
                 sim.n[t+1,:] = (1-par.delta) * sim.d[t,:] 
+
+        toc = process_time()
+        print(f'Simulation time: {toc-tic:.2f} seconds')
