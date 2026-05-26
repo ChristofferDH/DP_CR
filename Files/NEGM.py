@@ -56,16 +56,18 @@ def NEGMalg(par, sol):
                 for jm in range(par.m_N):
                     sol.v_keep[t, jp, jn, jm] = v_keep[t, jp, jn, jm]
                     sol.v_adjust[t, jp, jn, jm] = v_adjust[t, jp, jn, jm]
-                    
+
                     if v_keep[t, jp, jn, jm] >= v_adjust[t, jp, jn, jm]:
                         sol.v[t, jp, jn, jm] = v_keep[t, jp, jn, jm]
                         sol.c[t, jp, jn, jm] = c_keep[t, jp, jn, jm]
                         sol.d[t, jp, jn, jm] = grid_n[t, jn]
+                        sol.a[t,jp,jn,jm] = grid_m[t,jm] - c_keep[t,jp,jn,jm]
                             
                     else:
                         sol.v[t, jp, jn, jm] = v_adjust[t, jp, jn, jm]
                         sol.c[t, jp, jn, jm] = c_adjust[t, jp, jn, jm]
                         sol.d[t, jp, jn, jm] = d_adjust[t, jp, jn, jm]
+                        sol.a[t,jp,jn,jm] = grid_m[t,jm] + (1-par.tau)*grid_n[t,jn] - c_adjust[t,jp,jn,jm] - d_adjust[t,jp,jn,jm]
 
         sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
 
