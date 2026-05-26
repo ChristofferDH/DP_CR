@@ -31,7 +31,7 @@ class DurableBufferStock():
         ### p: grid settings
         par.p_min = 0.0001
         par.p_max = 3
-        par.p_N = 20
+        par.p_N = 30
         
         ### a: grid settings
         par.a_min = 0.0001
@@ -43,7 +43,7 @@ class DurableBufferStock():
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 20 
+        par.n_N = 60 
 
         ### m: grid settings
         par.m_min = 0.0001
@@ -59,6 +59,12 @@ class DurableBufferStock():
         ## Shock grid settings
         par.N_psi = 5
         par.N_zeta = 5
+
+        # Simulation
+        par.simN = 1000 # number of persons in simulation
+        par.sim_m_ini = 2.5 # initial m in simulation
+        par.sim_p_ini = 0.0 # initial p in simulation
+        par.sim_n_ini = 0.0 # initial n in simulation
 
     def createGrids(self):
         par = self.par
@@ -111,3 +117,52 @@ class DurableBufferStock():
         sol = NEGM.NEGMalg(par, sol)
 
         # Store results
+
+    def simulate(self):
+        par = self.par
+        sol = self.sol
+        sim = self.sim
+
+        shape = (par.T, par.simN)
+
+        sim.v_keep = np.nan + np.zeros(shape)
+        sim.v_adjust = np.nan + np.zeros(shape)
+        sim.c = np.nan + np.zeros(shape)
+        sim.d = np.nan + np.zeros(shape)
+        sim.m = np.nan + np.zeros(shape)
+        sim.p = np.nan + np.zeros(shape)
+        sim.n = np.nan + np.zeros(shape)
+
+            
+        shocki = np.random.choice(par.number_of_shocks,(par.T,par.simN),replace=True,p=par.shock_weight) 
+        sim.psi = par.psi_vec[shocki] 
+        sim.zeta = par.zeta_vec[shocki]
+            
+        #check it has a mean of 1
+        assert (abs(1-np.mean(sim.psi)) < 1e-4), 'The mean is not 1 in the simulation of xi'
+        assert (abs(1-np.mean(sim.zeta)) < 1e-4), 'The mean is not 1 in the simulation of psi'
+
+        # Initial values
+        sim.p[0,:] = par.sim_p_ini
+        sim.n[0,:] = par.sim_n_ini
+        sim.m[0,:] = par.sim_m_ini
+
+        # Simulation
+        for t in range(par.T):
+            sim.c[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.c[t,:,:,:])
+            sim.d[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.d[t,:,:,:])
+            sim.v_keep[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_keep[t,:,:,:])
+            sim.v_adjust[t,:] = interp_3d(sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_adjust[t,:,:,:])
+            
+            for i in range(par.simN):
+                if sim.v_keep[t,i] >= sim.v_adjust[t,i]:
+                    sim.a[t,i] = sim.m[t,i] - sim.c[t,i]
+                else:
+                    sim.a[t,i] = sim.m[t,i] + (1-par.tau) * sim.n[t,i] - sim.c[t,i] - sim.d[t,i]
+
+
+            if t< par.T-1:
+                sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
+                sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]
+                sim.m[t+1,:] = par.R * sim.a[t,:] + sim.y[t+1,:]
+                sim.n[t+1,:] = (1-par.delta) * sim.d[t,:] 

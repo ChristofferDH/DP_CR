@@ -233,3 +233,33 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
                     interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm_vector[i] + km]
                     
     return interp_function  
+
+def Interp(par, t):
+
+    grid_p = par.grid_p[t,:]
+    grid_n = par.grid_n[t,:]
+    grid_m = par.grid_m[t,:]
+
+    interp_function = np.zeros(len(m))
+    binary_array = [0, 1]
+
+    for kp in binary_array:
+        if kp == 0:
+            omega_p = grid_p[jp + 1] - p
+        else:
+            omega_p = p - grid_p[jp]
+        for kn in binary_array:
+            if kn == 0:
+                omega_n = grid_n[jn + 1] - n
+            else:
+                omega_n = n - grid_n[jn]
+
+            for i in range(len(interp_function)):
+                jm_vector[i] = np.clip(jm_vector[i], 0, len(grid_m)-2)
+                Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
+                for km in binary_array:
+                    if km == 0:
+                        omega_m = grid_m[jm_vector[i] + 1] - m[i]
+                    else:
+                        omega_m = m[i] - grid_m[jm_vector[i]]
+                    interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm_vector[i] + km]
