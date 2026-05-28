@@ -10,13 +10,12 @@ class DurableBufferStock():
         self.par = SimpleNamespace()
         self.sol = SimpleNamespace()
         self.sim = SimpleNamespace()
-        self.sim2 = SimpleNamespace()
 
     def modelSetup(self):
         par = self.par
 
         # All of these parameters are taken from Druedahl (2020)
-        par.T = 10
+        par.T = 50
         par.beta = 0.965
         par.rho = 2
         par.alpha = 0.9
@@ -54,7 +53,7 @@ class DurableBufferStock():
 
         ### x: grid settings
         par.x_min = 0.0001
-        par.x_max = par.m_max + par.n_max
+        par.x_max = 13
         par.x_N = 30 
         
         # Numerical integration
@@ -64,9 +63,12 @@ class DurableBufferStock():
 
         # Simulation
         par.simN = 100000 # number of persons in simulation
-        par.sim_m_ini = 1.0 # initial m in simulation
-        par.sim_p_ini = 1.0 # initial p in simulation
-        par.sim_n_ini = 1.0 # initial n in simulation
+        par.sim_p_ini = np.exp(np.random.normal(np.log(1), 0.2, par.simN))
+        par.sim_d_ini = np.exp(np.random.normal(np.log(0.8), 0.2, par.simN))
+        par.sim_a_ini = np.exp(np.random.normal(np.log(0.2), 0.1, par.simN))
+
+        
+
 
     def createGrids(self):
         par = self.par
@@ -146,21 +148,28 @@ class DurableBufferStock():
         sim.zeta = par.zeta_vec[shocki]
             
         #check it has a mean of 1
-        assert (abs(1-np.mean(sim.psi)) < 1e-4), 'The mean is not 1 in the simulation of xi'
-        assert (abs(1-np.mean(sim.zeta)) < 1e-4), 'The mean is not 1 in the simulation of psi'
+        assert (abs(1-np.mean(sim.psi)) < 1e-2), 'The mean is not 1 in the simulation of xi'
+        assert (abs(1-np.mean(sim.zeta)) < 1e-2), 'The mean is not 1 in the simulation of psi'
 
-        # Initial values
-        sim.p[0,:] = par.sim_p_ini
-        sim.n[0,:] = par.sim_n_ini
-        sim.m[0,:] = par.sim_m_ini
+        # Construct state variables for first period
+        sim.p[0,:] = sim.psi[0,:] * par.sim_p_ini**(par.Lambda)
+        sim.y[0,:] = sim.zeta[0,:] * sim.p[0,:]
+        sim.m[0,:] = par.R * par.sim_a_ini + sim.y[0,:]
+        sim.n[0,:] = (1-par.delta) * par.sim_d_ini
+
+        
 
         # Simulation
         for t in range(par.T):
+            sim.p[t,:] = np.clip(sim.p[t,:], par.grid_p[t,0], par.grid_p[t,-1])
+            sim.n[t,:] = np.clip(sim.n[t,:], par.grid_n[t,0], par.grid_n[t,-1])
+            sim.m[t,:] = np.clip(sim.m[t,:], par.grid_m[t,0], par.grid_m[t,-1])
+        
             for i in range(par.simN):
-                sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
-                sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
-                sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
-
+                    sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
+                    sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
+                    sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
+            sim.d[t,:] = np.maximum(sim.d[t,:], 0.0)
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
                 sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]

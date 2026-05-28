@@ -9,12 +9,16 @@ def NEGMalg(par, sol):
 
     grid_n = par.grid_n
     grid_m = par.grid_m
+    grid_x = par.grid_x
 
     v_temp = np.full((par.T - 1, par.p_N, par.n_N, par.n_N, par.m_N), np.nan) #Temporary array for the adjustment problem
     c_temp = np.full((par.T - 1, par.p_N, par.n_N, par.n_N, par.m_N), np.nan)
 
     c_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_keep = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
+
+    c_keep_x = np.full((par.T-1, par.p_N, par.n_N, par.x_N), np.nan)
+    v_keep_x = np.full((par.T-1, par.p_N, par.n_N, par.x_N), np.nan)
 
     c_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     v_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
@@ -30,6 +34,11 @@ def NEGMalg(par, sol):
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+
+        # Step pre 3: Solving the keeper problem on grid x
+        for jp in range(par.p_N):
+            for jd, d in enumerate(grid_n[t,:]):
+                c_keep_x[t, jp, jd, :], v_keep_x[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=1)
         
         # Step 3: solving the adjustment problem
         for jm, m in enumerate(grid_m[t, :]):        
@@ -39,8 +48,8 @@ def NEGMalg(par, sol):
                     for jd, d in enumerate(grid_n[t, :]): 
                         if x >= d:
                             m_new = x - d
-                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], v_keep[t, jp, jd, :])
-                            c_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_m[t, :], c_keep[t, jp, jd, :])
+                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_x[t, :], v_keep_x[t, jp, jd, :])
+                            c_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_x[t, :], c_keep_x[t, jp, jd, :])
                         else:
                             v_temp[t, jp, jn, jd, jm] = -1e12
                             c_temp[t, jp, jn, jd, jm] = -1e12
@@ -54,24 +63,20 @@ def NEGMalg(par, sol):
             for jn in range(par.n_N):
                 sol.m[t, jp, jn, :] = grid_m[t, :]
                 for jm in range(par.m_N):
-                    sol.v_keep[t, jp, jn, jm] = v_keep[t, jp, jn, jm]
-                    sol.v_adjust[t, jp, jn, jm] = v_adjust[t, jp, jn, jm]
-
                     if v_keep[t, jp, jn, jm] >= v_adjust[t, jp, jn, jm]:
                         sol.v[t, jp, jn, jm] = v_keep[t, jp, jn, jm]
                         sol.c[t, jp, jn, jm] = c_keep[t, jp, jn, jm]
                         sol.d[t, jp, jn, jm] = grid_n[t, jn]
-                        sol.a[t,jp,jn,jm] = grid_m[t,jm] - c_keep[t,jp,jn,jm]
-                            
+                        sol.a[t, jp, jn, jm] = grid_m[t,jm] - c_keep[t,jp,jn,jm]  
                     else:
                         sol.v[t, jp, jn, jm] = v_adjust[t, jp, jn, jm]
                         sol.c[t, jp, jn, jm] = c_adjust[t, jp, jn, jm]
                         sol.d[t, jp, jn, jm] = d_adjust[t, jp, jn, jm]
-                        sol.a[t,jp,jn,jm] = grid_m[t,jm] + (1-par.tau)*grid_n[t,jn] - c_adjust[t,jp,jn,jm] - d_adjust[t,jp,jn,jm]
+                        sol.a[t, jp, jn, jm] = grid_m[t,jm] + (1-par.tau)*grid_n[t,jn] - c_adjust[t,jp,jn,jm] - d_adjust[t,jp,jn,jm]
 
         sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
 
-    return sol   
+    return sol  
 
 def terminalPeriod(par, sol):
 
@@ -114,11 +119,14 @@ def terminalPeriod(par, sol):
     return sol
   
 
-def EGMUpperEnvelope(t, par, w, q, jp, jd):
+def EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=0):
     
     # inputs
 
-    grid_m = par.grid_m[t,:]
+    if gridx == 0:
+        grid_m = par.grid_m[t,:]
+    elif gridx == 1:
+        grid_m = par.grid_x[t,:]
     grid_a = par.grid_a[t,:]
     d = par.grid_n[t, jd]
 
