@@ -123,8 +123,6 @@ class DurableBufferStock():
         toc = process_time()
         print(f'Solver time: {toc-tic:.2f} seconds')
 
-
-
     def simulate(self):
         tic = process_time()
 
@@ -134,8 +132,6 @@ class DurableBufferStock():
 
         shape = (par.T, par.simN)
 
-        sim.v_keep = np.nan + np.zeros(shape)
-        sim.v_adjust = np.nan + np.zeros(shape)
         sim.c = np.nan + np.zeros(shape)
         sim.d = np.nan + np.zeros(shape)
         sim.m = np.nan + np.zeros(shape)
@@ -150,8 +146,8 @@ class DurableBufferStock():
         sim.zeta = par.zeta_vec[shocki]
             
         #check it has a mean of 1
-        assert (abs(1-np.mean(sim.psi)) < 1e-2), 'The mean is not 1 in the simulation of xi'
-        assert (abs(1-np.mean(sim.zeta)) < 1e-2), 'The mean is not 1 in the simulation of psi'
+        assert (abs(1-np.mean(sim.psi)) < 1e-4), 'The mean is not 1 in the simulation of xi'
+        assert (abs(1-np.mean(sim.zeta)) < 1e-4), 'The mean is not 1 in the simulation of psi'
 
         # Initial values
         sim.p[0,:] = par.sim_p_ini
@@ -160,69 +156,16 @@ class DurableBufferStock():
 
         # Simulation
         for t in range(par.T):
-            sim.c[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.c[t,:,:,:], t)
-            sim.d[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.d[t,:,:,:], t)
-            sim.v_keep[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_keep[t,:,:,:], t)
-            sim.v_adjust[t,:] = NEGM.LinearInterp(par, sim.p[t,:], sim.n[t,:], sim.m[t,:], sol.v_adjust[t,:,:,:], t)
-            
             for i in range(par.simN):
-                if sim.v_keep[t,i] >= sim.v_adjust[t,i]:
-                    sim.a[t,i] = sim.m[t,i] - sim.c[t,i]
-                else:
-                    sim.a[t,i] = sim.m[t,i] + (1-par.tau) * sim.n[t,i] - sim.c[t,i] - sim.d[t,i]
+                sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
+                sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
+                sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
 
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
                 sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]
                 sim.m[t+1,:] = par.R * sim.a[t,:] + sim.y[t+1,:]
                 sim.n[t+1,:] = (1-par.delta) * sim.d[t,:] 
-
-        toc = process_time()
-        print(f'Simulation time: {toc-tic:.2f} seconds')
-
-    def simulate2(self):
-        tic = process_time()
-
-        par = self.par
-        sol = self.sol
-        sim = self.sim
-        sim2 = self.sim2
-
-        shape = (par.T, par.simN)
-
-        sim2.c = np.nan + np.zeros(shape)
-        sim2.d = np.nan + np.zeros(shape)
-        sim2.m = np.nan + np.zeros(shape)
-        sim2.p = np.nan + np.zeros(shape)
-        sim2.n = np.nan + np.zeros(shape)
-        sim2.a = np.nan + np.zeros(shape)
-        sim2.y = np.nan + np.zeros(shape)
-
-            
-        shocki = np.random.choice(par.number_of_shocks,(par.T,par.simN),replace=True,p=par.shock_weight) 
-        sim.psi = par.psi_vec[shocki] 
-        sim.zeta = par.zeta_vec[shocki]
-            
-        #check it has a mean of 1
-        assert (abs(1-np.mean(sim.psi)) < 1e-2), 'The mean is not 1 in the simulation of xi'
-        assert (abs(1-np.mean(sim.zeta)) < 1e-2), 'The mean is not 1 in the simulation of psi'
-
-        # Initial values
-        sim2.p[0,:] = par.sim_p_ini
-        sim2.n[0,:] = par.sim_n_ini
-        sim2.m[0,:] = par.sim_m_ini
-
-        # Simulation
-        for t in range(par.T):
-            sim2.c[t,:] = NEGM.LinearInterp(par, sim2.p[t,:], sim2.n[t,:], sim2.m[t,:], sol.c[t,:,:,:], t)
-            sim2.d[t,:] = NEGM.LinearInterp(par, sim2.p[t,:], sim2.n[t,:], sim2.m[t,:], sol.d[t,:,:,:], t)
-            sim2.a[t,:] = NEGM.LinearInterp(par, sim2.p[t,:], sim2.n[t,:], sim2.m[t,:], sol.a[t,:,:,:], t)
-
-            if t< par.T-1:
-                sim2.p[t+1,:] = sim.psi[t+1,:] * sim2.p[t,:]**(par.Lambda)
-                sim2.y[t+1,:] = sim.zeta[t+1,:] * sim2.p[t+1,:]
-                sim2.m[t+1,:] = par.R * sim2.a[t,:] + sim2.y[t+1,:]
-                sim2.n[t+1,:] = (1-par.delta) * sim2.d[t,:] 
 
         toc = process_time()
         print(f'Simulation time: {toc-tic:.2f} seconds')
