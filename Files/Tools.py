@@ -1,5 +1,40 @@
 import numpy as np
+from numba import njit, int64, double
 import math
+
+# interpolation functions:
+@njit(int64(int64,int64,double[:],double))
+def binary_search(imin,Nx,x,xi):
+        
+    # a. checks
+    if xi <= x[0]:
+        return 0
+    elif xi >= x[Nx-2]:
+        return Nx-2
+    
+    # b. binary search
+    half = Nx//2
+    while half:
+        imid = imin + half
+        if x[imid] <= xi:
+            imin = imid
+        Nx -= half
+        half = Nx//2
+        
+    return imin
+
+@njit(double(double[:],double[:],double))
+def interp_linear_1d_scalar(grid,value,xi):
+    """ raw 1D interpolation """
+
+    # a. search
+    ix = binary_search(0,grid.size,grid,xi)
+    
+    # b. relative positive
+    rel_x = (xi - grid[ix])/(grid[ix+1]-grid[ix])
+    
+    # c. interpolate
+    return value[ix] + rel_x * (value[ix+1]-value[ix])
 
 def gridFunction(grid_min, grid_max, num_grids):
 

@@ -1,6 +1,6 @@
 import numpy as np
 from types import SimpleNamespace
-from Files import Tools as Tools
+from Files import Tools
 from Files import NEGM
 from time import process_time
 
@@ -32,29 +32,29 @@ class DurableBufferStock():
         ### p: grid settings
         par.p_min = 0.0001
         par.p_max = 3
-        par.p_N = 10
+        par.p_N = 20
         
         ### a: grid settings
         par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 30 
+        par.a_N = 40 
 
         ## Pre-decision state grids
         
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 30 
+        par.n_N = 40 
 
         ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 30
+        par.m_N = 40
 
         ### x: grid settings
         par.x_min = 0.0001
         par.x_max = 13
-        par.x_N = 30 
+        par.x_N = 40 
         
         # Numerical integration
         ## Shock grid settings
@@ -134,6 +134,7 @@ class DurableBufferStock():
 
         shape = (par.T, par.simN)
 
+        sim.v = np.nan + np.zeros(shape)
         sim.c = np.nan + np.zeros(shape)
         sim.d = np.nan + np.zeros(shape)
         sim.m = np.nan + np.zeros(shape)
@@ -161,14 +162,11 @@ class DurableBufferStock():
 
         # Simulation
         for t in range(par.T):
-            sim.p[t,:] = np.clip(sim.p[t,:], par.grid_p[t,0], par.grid_p[t,-1])
-            sim.n[t,:] = np.clip(sim.n[t,:], par.grid_n[t,0], par.grid_n[t,-1])
-            sim.m[t,:] = np.clip(sim.m[t,:], par.grid_m[t,0], par.grid_m[t,-1])
-        
             for i in range(par.simN):
-                    sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
-                    sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
-                    sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
+                sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
+                sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
+                sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
+                sim.v[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.v[t,:,:,:], t)
             sim.d[t,:] = np.maximum(sim.d[t,:], 0.0)
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)

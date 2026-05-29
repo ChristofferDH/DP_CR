@@ -16,7 +16,7 @@ def marginalUtility(c, d, par, CobbDouglas = True):
 def z(d, q, par, CobbDouglas = True):
     numerator = q
     if CobbDouglas:
-        denominator = (par.alpha * (d + par.d_floor)) ** ((1-par.alpha)*(1-par.rho))
+        denominator = par.alpha * (d + par.d_floor) ** ((1-par.alpha)*(1-par.rho))
         return (numerator / denominator ) ** (1/(par.alpha*(1-par.rho)-1))
     else:
         pass

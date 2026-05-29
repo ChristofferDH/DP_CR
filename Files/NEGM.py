@@ -1,5 +1,6 @@
 import numpy as np
 from Files import HelperFunctions as Function
+from Files import Tools
 
 def NEGMalg(par, sol):
 
@@ -48,8 +49,8 @@ def NEGMalg(par, sol):
                     for jd, d in enumerate(grid_n[t, :]): 
                         if x >= d:
                             m_new = x - d
-                            v_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_x[t, :], v_keep_x[t, jp, jd, :])
-                            c_temp[t, jp, jn, jd, jm] = np.interp(m_new, grid_x[t, :], c_keep_x[t, jp, jd, :])
+                            v_temp[t, jp, jn, jd, jm] = Tools.interp_linear_1d_scalar(grid_x[t, :],v_keep_x[t, jp, jd, :],m_new)
+                            c_temp[t, jp, jn, jd, jm] = Tools.interp_linear_1d_scalar(grid_x[t, :],c_keep_x[t, jp, jd, :],m_new)
                         else:
                             v_temp[t, jp, jn, jd, jm] = -1e12
                             c_temp[t, jp, jn, jd, jm] = -1e12
@@ -93,8 +94,8 @@ def terminalPeriod(par, sol):
             x = m + (1 - tau) * n
             c_adjust = alpha * (x + d_floor)
             d_adjust = (1- alpha)/alpha * c_adjust - d_floor
-            u_adjust = Function.utility(c_adjust, d_adjust, par)
             if x >= alpha/(1 - alpha) * d_floor:
+                u_adjust = Function.utility(c_adjust, d_adjust, par)
                 v_adjust = u_adjust
                 uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             else:
@@ -102,8 +103,7 @@ def terminalPeriod(par, sol):
                 uc_adjust = np.nan
             
             sol.m[par.T-1,:, i_n, i_m] = m
-            sol.v_keep[par.T-1,:, i_n, i_m] = v_keep # saved for simulation
-            sol.v_adjust[par.T-1,:, i_n, i_m] = v_adjust # saved for simulation
+
             if v_keep >= v_adjust:
                 sol.v[par.T-1,:, i_n, i_m] = v_keep
                 sol.c[par.T-1,:, i_n, i_m] = m
@@ -147,12 +147,16 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=0):
         ci[i_a] = Function.z(d, qi[i_a], par)
 
         mi[i_a] = a + ci[i_a]
-    # borrowing constraint
+
+    # borrowing constraint and upper bound
 
     for j, m in enumerate(grid_m):
         if m <= mi[0]:
             c[j] = m
             v[j] = Function.utility(c[j],d,par) + wi[0]
+        elif m >= mi[-1]:
+            c[j] = ci[-1] + (m - mi[-1])
+            v[j] = Function.utility(c[j], d, par) + wi[-1]
 
     # Interpolate the optimal consumption on to the exogenous grid
 
@@ -168,7 +172,9 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=0):
     return c, v
 
 def postDecisionFunctions(sol, t, par):
+
     # inputs
+
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
     grid_a = par.grid_a[t,:]
@@ -200,14 +206,18 @@ def postDecisionFunctions(sol, t, par):
                 uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
 
                 w[jp, jn, :] += par.beta * weight * v_next_interp
-                q[jp, jn, :] += par.beta * par.R * weight * uc_next_interp
-                
+                q[jp, jn, :] += par.beta * par.R * weight * uc_next_interp 
+
     return w, q
 
 def vectorInterpolationKeep(par, p, n, m, v, t):
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
     grid_m = par.grid_m[t,:]
+
+    p = np.clip(p, grid_p[0], grid_p[-1])
+    n = np.clip(n, grid_n[0], grid_n[-1])
+    m = np.clip(m, grid_m[0], grid_m[-1])
 
     jp = np.searchsorted(grid_p, p, side='left') - 1
     jn = np.searchsorted(grid_n, n, side='left') - 1
@@ -255,6 +265,10 @@ def LinearInterp(par, p, n, m, v, t):
     grid_n = par.grid_n[t,:]
     grid_m = par.grid_m[t,:]
 
+    p = np.clip(p, grid_p[0], grid_p[-1])
+    n = np.clip(n, grid_n[0], grid_n[-1])
+    m = np.clip(m, grid_m[0], grid_m[-1])
+
     jp = np.searchsorted(grid_p, p, side='left') - 1
     jn = np.searchsorted(grid_n, n, side='left') - 1
     jm = np.searchsorted(grid_m, m, side='left') - 1
@@ -285,4 +299,4 @@ def LinearInterp(par, p, n, m, v, t):
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm + 1] - grid_m[jm])
                 interp_function += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm + km]
 
-    return interp_function 
+    return interp_function  
