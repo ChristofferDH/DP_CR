@@ -37,24 +37,24 @@ class DurableBufferStock():
         ### a: grid settings
         par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 40 
+        par.a_N = 50 
 
         ## Pre-decision state grids
         
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 40 
+        par.n_N = 50 
 
         ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 40
+        par.m_N = 50
 
         ### x: grid settings
         par.x_min = 0.0001
         par.x_max = 13
-        par.x_N = 40 
+        par.x_N = 50 
         
         # Numerical integration
         ## Shock grid settings
@@ -162,12 +162,10 @@ class DurableBufferStock():
 
         # Simulation
         for t in range(par.T):
+            print(t)
             for i in range(par.simN):
-                sim.c[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.c[t,:,:,:], t)
-                sim.d[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.d[t,:,:,:], t)
-                sim.a[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.a[t,:,:,:], t)
-                sim.v[t,i] = NEGM.LinearInterp(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol.v[t,:,:,:], t)
-            sim.d[t,:] = np.maximum(sim.d[t,:], 0.0)
+                sim.c[t,i], sim.d[t,i], sim.a[t,i], sim.v[t,i] = NEGM.LinearInterpSim(par, sim.p[t,i], sim.n[t,i], sim.m[t,i], sol, t)
+
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
                 sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]

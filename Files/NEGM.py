@@ -1,6 +1,7 @@
 import numpy as np
 from Files import HelperFunctions as Function
 from Files import Tools
+from time import process_time
 
 def NEGMalg(par, sol):
 
@@ -25,23 +26,33 @@ def NEGMalg(par, sol):
     v_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
     d_adjust = np.full((par.T - 1, par.p_N, par.n_N, par.m_N), np.nan)
 
+    time_step1 = 0.0
+    time_step2 = 0.0
+    time_step3 = 0.0
+    time_step4 = 0.0
+
     
     for t in range(par.T - 2, -1, -1):
         print(t)
-        # Step 1: Finding w and q
+
+        # Step 1: Find w and q
+        tic = process_time()
         w, q = postDecisionFunctions(sol, t, par)
+        time_step1 += process_time() - tic
 
         # Step 2: Solving the keeper problem for c and v
+        tic = process_time()
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep[t, jp, jd, :], v_keep[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd)
+        time_step2 += process_time() - tic
 
-        # Step pre 3: Solving the keeper problem on grid x
+        # Step 3: Solving the adjustment problem
+        tic = process_time()
         for jp in range(par.p_N):
             for jd, d in enumerate(grid_n[t,:]):
                 c_keep_x[t, jp, jd, :], v_keep_x[t, jp, jd, :] = EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=1)
         
-        # Step 3: solving the adjustment problem
         for jm, m in enumerate(grid_m[t, :]):        
             for jp in range(par.p_N):
                 for jn, n in enumerate(grid_n[t, :]):
@@ -58,8 +69,10 @@ def NEGMalg(par, sol):
                     d_adjust[t, jp, jn, jm] = grid_n[t, d_opt]
                     v_adjust[t, jp, jn, jm] = v_temp[t, jp, jn, d_opt, jm]
                     c_adjust[t, jp, jn, jm] = c_temp[t, jp, jn, d_opt, jm]
-                  
-        #Step 4: comparing the two solutions and choosing the better one             
+        time_step3 += process_time() - tic
+
+        #Step 4: comparing the two solutions and choosing the better one  
+        tic = process_time()           
         for jp in range(par.p_N):
             for jn in range(par.n_N):
                 sol.m[t, jp, jn, :] = grid_m[t, :]
@@ -76,6 +89,12 @@ def NEGMalg(par, sol):
                         sol.a[t, jp, jn, jm] = grid_m[t,jm] + (1-par.tau)*grid_n[t,jn] - c_adjust[t,jp,jn,jm] - d_adjust[t,jp,jn,jm]
 
         sol.uc[t,:,:,:] = Function.marginalUtility(sol.c[t,:,:,:], sol.d[t,:,:,:], par)
+        time_step4 += process_time() - tic
+
+    print(f"Step 1 total time: {time_step1:.2f} seconds")
+    print(f"Step 2 total time: {time_step2:.2f} seconds")
+    print(f"Step 3 total time: {time_step3:.2f} seconds")
+    print(f"Step 4 total time: {time_step4:.2f} seconds")
 
     return sol  
 
@@ -202,8 +221,9 @@ def postDecisionFunctions(sol, t, par):
                 y_next = p_next * zeta
                 m_next = par.R * grid_a + y_next
                     
-                v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
-                uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
+                #v_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, v_next, t)
+                #uc_next_interp = vectorInterpolationKeep(par, p_next, n_next, m_next, uc_next, t)
+                v_next_interp, uc_next_interp = vectorInterpolationKeep2(par, p_next, n_next, m_next, v_next, uc_next, t)
 
                 w[jp, jn, :] += par.beta * weight * v_next_interp
                 q[jp, jn, :] += par.beta * par.R * weight * uc_next_interp 
@@ -259,7 +279,7 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
                     
     return interp_function  
 
-def LinearInterp(par, p, n, m, v, t):
+def LinearInterpSim(par, p, n, m, sol, t):
 
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
@@ -277,7 +297,11 @@ def LinearInterp(par, p, n, m, v, t):
     jn = np.clip(jn, 0, len(grid_n) - 2)
     jm = np.clip(jm, 0, len(grid_m) - 2)
 
-    interp_function = 0
+    c = 0
+    d = 0
+    a = 0
+    v = 0
+
     binary_array = [0, 1]
 
     for kp in binary_array:
@@ -297,6 +321,64 @@ def LinearInterp(par, p, n, m, v, t):
                     omega_m = m - grid_m[jm]
 
                 Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm + 1] - grid_m[jm])
-                interp_function += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm + km]
+                Weight = (omega_p * omega_n * omega_m)/Omega
+                c += Weight * sol.c[t, jp + kp, jn + kn, jm + km]
+                d += Weight * sol.d[t, jp + kp, jn + kn, jm + km]
+                a += Weight * sol.a[t, jp + kp, jn + kn, jm + km]
+                v += Weight * sol.v[t, jp + kp, jn + kn, jm + km]
 
-    return interp_function  
+    return c, d, a, v  
+
+def vectorInterpolationKeep2(par, p, n, m, v_next, uc_next, t):
+    grid_p = par.grid_p[t,:]
+    grid_n = par.grid_n[t,:]
+    grid_m = par.grid_m[t,:]
+
+    p = np.clip(p, grid_p[0], grid_p[-1])
+    n = np.clip(n, grid_n[0], grid_n[-1])
+    m = np.clip(m, grid_m[0], grid_m[-1])
+
+    jp = np.searchsorted(grid_p, p, side='left') - 1
+    jn = np.searchsorted(grid_n, n, side='left') - 1
+    jm_vector = np.zeros(len(m), dtype = int)
+
+    jp = np.clip(jp, 0, len(grid_p) - 2)
+    jn = np.clip(jn, 0, len(grid_n) - 2)
+    for i in range(len(m)):
+        if i == 0:
+            jm_vector[i] = np.searchsorted(grid_m, m[i], side='left') - 1
+        else:
+            jm_vector[i] = jm_vector[i-1]
+            while jm_vector[i] + 1 < len(grid_m) and m[i] >= grid_m[jm_vector[i] + 1]:
+                jm_vector[i] += 1
+        
+    v_interp = np.zeros(len(m))
+    uc_interp = np.zeros(len(m))
+
+    binary_array = [0, 1]
+
+    for kp in binary_array:
+        if kp == 0:
+            omega_p = grid_p[jp + 1] - p
+        else:
+            omega_p = p - grid_p[jp]
+        for kn in binary_array:
+            if kn == 0:
+                omega_n = grid_n[jn + 1] - n
+            else:
+                omega_n = n - grid_n[jn]
+
+            for i in range(len(v_interp)):
+                jm_vector[i] = np.clip(jm_vector[i], 0, len(grid_m)-2)
+                Omega = (grid_p[jp + 1] - grid_p[jp]) * (grid_n[jn + 1] - grid_n[jn]) * (grid_m[jm_vector[i] + 1] - grid_m[jm_vector[i]])
+                for km in binary_array:
+                    if km == 0:
+                        omega_m = grid_m[jm_vector[i] + 1] - m[i]
+                    else:
+                        omega_m = m[i] - grid_m[jm_vector[i]]
+
+                    Weight = (omega_p * omega_n * omega_m)/Omega
+                    v_interp[i] += Weight * v_next[jp + kp, jn + kn, jm_vector[i] + km]
+                    uc_interp[i] += Weight * uc_next[jp + kp, jn + kn, jm_vector[i] + km]
+                    
+    return v_interp, uc_interp  
