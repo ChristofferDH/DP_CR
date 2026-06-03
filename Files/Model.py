@@ -11,6 +11,7 @@ class DurableBufferStock():
         self.sol = SimpleNamespace()
         self.sim = SimpleNamespace()
 
+    # Setting up the parameter values
     def modelSetup(self):
         par = self.par
 
@@ -26,35 +27,37 @@ class DurableBufferStock():
         par.sigma_psi = 0.1 # Permanent
         par.sigma_zeta = 0.1 # Transitory
         par.Lambda = 1 #Persistency parameter
+        par.sigma = 2
+        par.CobbDouglas = True
 
         # Grids!!!
         # pre and post-decisision state grid
         ### p: grid settings
         par.p_min = 0.0001
         par.p_max = 3
-        par.p_N = 20
+        par.p_N = 10
         
         ### a: grid settings
         par.a_min = 0.0001
         par.a_max = 11
-        par.a_N = 50 
+        par.a_N = 30 
 
         ## Pre-decision state grids
         
         ### n: grid settings
         par.n_min = 0.0001
         par.n_max = 3
-        par.n_N = 50 
+        par.n_N = 20 
 
         ### m: grid settings
         par.m_min = 0.0001
         par.m_max = 10
-        par.m_N = 50
+        par.m_N = 30
 
         ### x: grid settings
         par.x_min = 0.0001
         par.x_max = 13
-        par.x_N = 50 
+        par.x_N = 30 
         
         # Numerical integration
         ## Shock grid settings
@@ -62,14 +65,15 @@ class DurableBufferStock():
         par.N_zeta = 5
 
         # Simulation
-        par.simN = 100000 # number of persons in simulation
+        par.simN = 10000 # number of persons in simulation
         par.sim_p_ini = np.exp(np.random.normal(np.log(1), 0.2, par.simN))
         par.sim_d_ini = np.exp(np.random.normal(np.log(0.8), 0.2, par.simN))
         par.sim_a_ini = np.exp(np.random.normal(np.log(0.2), 0.1, par.simN))
+        par.counter_factual = 0
 
         
 
-
+    #Creating grids
     def createGrids(self):
         par = self.par
 
@@ -100,12 +104,13 @@ class DurableBufferStock():
         assert (1-sum(par.shock_weight) < 1e-8), 'The weights do not sum to 1'
         par.number_of_shocks = par.shock_weight.size    # count number of shock nodes
 
+    # Running the solution algorithm from NEGM.py
     def solve(self):
         tic = process_time()
         # initialize
 
         sol = self.sol
-        par = self.par
+        par = self.par 
 
         shape = (par.T, par.p_N, par.n_N, par.m_N)
         sol.v = np.nan + np.zeros(shape)
@@ -125,6 +130,7 @@ class DurableBufferStock():
         toc = process_time()
         print(f'Solver time: {toc-tic:.2f} seconds')
 
+    # Simulating the model
     def simulate(self):
         tic = process_time()
 
@@ -169,6 +175,8 @@ class DurableBufferStock():
             if t< par.T-1:
                 sim.p[t+1,:] = sim.psi[t+1,:] * sim.p[t,:]**(par.Lambda)
                 sim.y[t+1,:] = sim.zeta[t+1,:] * sim.p[t+1,:]
+                if (t == 0 or t == 10 or t == 20 or t == 30 or t == 40) and par.counter_factual == 1:
+                    sim.y[t+1,:] *= 0.1
                 sim.m[t+1,:] = par.R * sim.a[t,:] + sim.y[t+1,:]
                 sim.n[t+1,:] = (1-par.delta) * sim.d[t,:] 
 

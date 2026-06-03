@@ -3,6 +3,7 @@ from Files import HelperFunctions as Function
 from Files import Tools
 from time import process_time
 
+#Our overall algorithm that solves and compares the keeper and adjuster solutions
 def NEGMalg(par, sol):
 
     #Step 0: Solving the terminal period
@@ -97,7 +98,7 @@ def NEGMalg(par, sol):
     print(f"Step 4 total time: {time_step4:.2f} seconds")
 
     return sol  
-
+#The function for solving the problem in the terminal period
 def terminalPeriod(par, sol):
 
     alpha = par.alpha
@@ -146,7 +147,7 @@ def terminalPeriod(par, sol):
 
     return sol
   
-
+# Main part of solving the keepr problem
 def EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=0):
     
     # inputs
@@ -199,6 +200,7 @@ def EGMUpperEnvelope(t, par, w, q, jp, jd, gridx=0):
                     
     return c, v
 
+# Here we calculate q and w so they can be used in the upper envelope part of the algorithm
 def postDecisionFunctions(sol, t, par):
 
     # inputs
@@ -239,6 +241,7 @@ def postDecisionFunctions(sol, t, par):
 
     return w, q
 
+# Interpolating the new values of v_next and uc_next
 def vectorInterpolationKeep(par, p, n, m, v, t):
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
@@ -287,7 +290,7 @@ def vectorInterpolationKeep(par, p, n, m, v, t):
                     interp_function[i] += (omega_p * omega_n * omega_m)/Omega * v[jp + kp, jn + kn, jm_vector[i] + km]
                     
     return interp_function  
-
+# Another interpolation algorithm
 def LinearInterpSim(par, p, n, m, sol, t):
 
     grid_p = par.grid_p[t,:]
@@ -338,6 +341,7 @@ def LinearInterpSim(par, p, n, m, sol, t):
 
     return c, d, a, v  
 
+#Yet another interpolation algorithm
 def vectorInterpolationKeep2(par, p, n, m, v_next, uc_next, t):
     grid_p = par.grid_p[t,:]
     grid_n = par.grid_n[t,:]
@@ -359,7 +363,7 @@ def vectorInterpolationKeep2(par, p, n, m, v_next, uc_next, t):
         else:
             jm_vector[i] = jm_vector[i-1]
             while jm_vector[i] + 1 < len(grid_m) and m[i] >= grid_m[jm_vector[i] + 1]:
-                jm_vector[i] += 1
+                jm_vector[i] += 1 
         
     v_interp = np.zeros(len(m))
     uc_interp = np.zeros(len(m))
