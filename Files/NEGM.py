@@ -111,15 +111,24 @@ def terminalPeriod(par, sol):
             uc_keep = Function.marginalUtility(m, n, par)
 
             x = m + (1 - tau) * n
-            c_adjust = alpha * (x + d_floor)
-            d_adjust = (1- alpha)/alpha * c_adjust - d_floor
-            if x >= alpha/(1 - alpha) * d_floor:
+
+            if alpha == 1:
+                c_adjust = x
+                d_adjust = 0.0
+
                 u_adjust = Function.utility(c_adjust, d_adjust, par)
                 v_adjust = u_adjust
                 uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
             else:
-                v_adjust = -np.inf
-                uc_adjust = np.nan
+                c_adjust = alpha * (x + d_floor)
+                d_adjust = (1- alpha)/alpha * c_adjust - d_floor
+                if x >= alpha/(1 - alpha) * d_floor:
+                    u_adjust = Function.utility(c_adjust, d_adjust, par)
+                    v_adjust = u_adjust
+                    uc_adjust = Function.marginalUtility(c_adjust, d_adjust, par)
+                else:
+                    v_adjust = -np.inf
+                    uc_adjust = np.nan
             
             sol.m[par.T-1,:, i_n, i_m] = m
 
